@@ -332,6 +332,12 @@ def chfs(module, filesystem):
     return: changed - True/False(filesystem state modified or not),
             msg - message
     """
+    # check initial attributes
+    changed = check_attr_change(module, filesystem)
+    if not changed:
+        msg = "No changes needed in %s" % filesystem
+        return False, msg
+
     attrs = module.params["attributes"]
     acct_sub_sys = module.params["account_subsystem"]
     amount = module.params["auto_mount"]
@@ -342,11 +348,6 @@ def chfs(module, filesystem):
 
     opts = ""
 
-    # check initial attributes
-    changed = check_attr_change(module, filesystem)
-    if not changed:
-        msg = "No changes needed in %s" % filesystem
-        return False, msg
 
     if is_nfs(module, filesystem):
         # Modify NFS filesystem
@@ -393,7 +394,7 @@ def chfs(module, filesystem):
         msg = "Modification of filesystem '%s' failed. cmd - '%s'" % (filesystem, cmd)
         module.fail_json(msg=msg, rc=rc, stdout=stdout, stderr=stderr)
 
-    msg = "Modification of Filesystem '%s' completed" % filesystem
+    msg = "Modification of filesystem '%s' completed" % filesystem
     return True, msg
 
 
