@@ -254,25 +254,3 @@ class TestChfs(unittest.TestCase):
             self.assertEqual(result["stderr"], stderr)
             pattern = "Modification of filesystem"
             self.assertRegexpMatches(result["msg"], pattern)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

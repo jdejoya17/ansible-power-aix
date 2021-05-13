@@ -37,5 +37,3 @@ def fail_json(*args, **kwargs):
 # Common Variables
 #########################################################################################
 rootdir = "ansible_collections.ibm.power_aix.plugins.modules."
-
-
