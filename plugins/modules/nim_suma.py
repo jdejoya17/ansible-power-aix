@@ -487,19 +487,18 @@ def find_sp_version(module, file):
     """
     sp_version = None
     module.debug("opening file: {0}".format(file))
-    myfile = open(file, "r")
-    for line in myfile:
-        # module.debug("line: {0}".format(line.rstrip()))
-        match_item = re.match(
-            r"^<SP name=\"([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4})\">$",
-            line.rstrip())
-        if match_item:
-            version = match_item.group(1)
-            module.debug("matched line: {0}, version={1}".format(line.rstrip(), version))
-            if sp_version is None or version > sp_version:
-                sp_version = version
-            break
-    myfile.close()
+    with open(file, "r") as myfile:
+        for line in myfile:
+            # module.debug("line: {0}".format(line.rstrip()))
+            match_item = re.match(
+                r"^<SP name=\"([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4})\">$",
+                line.rstrip())
+            if match_item:
+                version = match_item.group(1)
+                module.debug("matched line: {0}, version={1}".format(line.rstrip(), version))
+                if sp_version is None or version > sp_version:
+                    sp_version = version
+                break
 
     return sp_version
 

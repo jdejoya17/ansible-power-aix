@@ -793,11 +793,10 @@ def main():
     targets = []
     if module.params['target_file']:
         try:
-            myfile = open(module.params['target_file'], 'r')
-            csvreader = csv.reader(myfile, delimiter=':')
-            for line in csvreader:
-                targets.append(line[0].strip())
-            myfile.close()
+            with open(module.params['target_file'], 'r') as myfile:
+                csvreader = csv.reader(myfile, delimiter=':')
+                for line in csvreader:
+                    targets.append(line[0].strip())
         except IOError as e:
             msg = 'Failed to parse file {0}: {1}. Check the file content is '.format(e.filename, e.strerror)
             module.log(msg)

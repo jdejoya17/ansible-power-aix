@@ -1,8 +1,7 @@
-
-devops
-.travis.yml
+playbooks/*issue*
 .DS_Store
 .vscode
-venv
+venv*
 tests/output
 hosts
+.*.swp

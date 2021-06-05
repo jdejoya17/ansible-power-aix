@@ -15,7 +15,7 @@ DOCUMENTATION = r'''
 ---
 author:
 - AIX Development Team (@pbfinley1911)
-module: _nim_upgradeios
+module: nim_upgradeios
 short_description: Use NIM to update a single or a pair of Virtual I/O Servers.
 description:
 - Uses the NIM to perform upgrade to Virtual I/O Server (VIOS) targets tuple.

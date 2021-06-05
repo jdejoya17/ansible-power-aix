@@ -393,8 +393,8 @@ def unzip(src, dst, resize_fs=True):
         False otherwise
     """
     try:
-        zfile = zipfile.ZipFile(src)
-        zfile.extractall(dst)
+        with zipfile.ZipFile(src, "r") as zfile:
+            zfile.extractall(dst)
     except (zipfile.BadZipfile, zipfile.LargeZipFile, RuntimeError) as exc:
         if resize_fs and increase_fs(dst):
             return unzip(src, dst, resize_fs)
@@ -1000,38 +1000,43 @@ def run_downloader(urls, dst_path, resize_fs=True):
 
             # download and open tar file
             if download(url, dst, resize_fs):
-                tar = tarfile.open(dst, 'r')
+                with tarfile.open(dst, "r") as tar:
 
-                # find all epkg in tar file
-                epkgs = [epkg for epkg in tar.getnames() if re.search(r'(\b[\w.-]+.epkg.Z\b)$', epkg)]
-                out['2.discover'].extend(epkgs)
-                module.debug('found {0} epkg.Z file in tar file'.format(len(epkgs)))
+                    # find all epkg in tar file
+                    epkgs = [
+                        epkg for epkg in tar.getnames()
+                        if re.search(r'(\b[\w.-]+.epkg.Z\b)$', epkg)
+                    ]
+                    out['2.discover'].extend(epkgs)
+                    module.debug('found {0} epkg.Z file in tar file'.format(len(epkgs)))
 
-                # extract epkg
-                tar_dir = os.path.join(dst_path, 'tardir')
-                if not os.path.exists(tar_dir):
-                    os.makedirs(tar_dir)
-                for epkg in epkgs:
-                    for attempt in range(3):
-                        try:
-                            tar.extract(epkg, tar_dir)
-                        except (OSError, IOError, tarfile.TarError) as exc:
-                            if resize_fs:
-                                increase_fs(tar_dir)
+                    # extract epkg
+                    tar_dir = os.path.join(dst_path, 'tardir')
+                    if not os.path.exists(tar_dir):
+                        os.makedirs(tar_dir)
+                    for epkg in epkgs:
+                        for attempt in range(3):
+                            try:
+                                tar.extract(epkg, tar_dir)
+                            except (OSError, IOError, tarfile.TarError) as exc:
+                                if resize_fs:
+                                    increase_fs(tar_dir)
+                                else:
+                                    msg = 'Cannot extract tar file {0} to {1}'.format(
+                                        epkg, tar_dir
+                                    )
+                                    module.log(msg)
+                                    module.log('EXCEPTION {0}'.format(exc))
+                                    results['meta']['messages'].append(msg)
+                                    break
                             else:
-                                msg = 'Cannot extract tar file {0} to {1}'.format(epkg, tar_dir)
-                                module.log(msg)
-                                module.log('EXCEPTION {0}'.format(exc))
-                                results['meta']['messages'].append(msg)
                                 break
                         else:
-                            break
-                    else:
-                        msg = 'Cannot extract tar file {0} to {1}'.format(epkg, tar_dir)
-                        module.log(msg)
-                        results['meta']['messages'].append(msg)
-                        continue
-                    out['3.download'].append(os.path.abspath(os.path.join(tar_dir, epkg)))
+                            msg = 'Cannot extract tar file {0} to {1}'.format(epkg, tar_dir)
+                            module.log(msg)
+                            results['meta']['messages'].append(msg)
+                            continue
+                        out['3.download'].append(os.path.abspath(os.path.join(tar_dir, epkg)))
 
         else:  # URL as a Directory
             module.debug('treat url as a directory')

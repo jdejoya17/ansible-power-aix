@@ -3,13 +3,13 @@ sudo: required
 dist: bionic
 language: python
 python:
-  - "3.7"
+  - "3.8"
 
 # command to install dependencies
 install:
   - sudo add-apt-repository ppa:deadsnakes/ppa --yes
   - sudo apt-get --yes --force-yes install python3-venv
-  - pip install ansible==2.9
+  - pip install ansible==2.9.*
   - pip install flake8
   - pip3 install ansible-doc-extractor
   - pip install sphinx
@@ -28,10 +28,6 @@ script:
   #  E402: <module> level import not at top of file (as per Ansible module developement)
   #  W503: line break before binary operator (PEP8 advices to put logical operator ahead)
   - flake8 plugins/modules/* --max-line-length=160 --ignore=E402,W503
-
-  # checking yaml syntax is not relevant since there are just examples.
-  #- ansible-playbook playbook_aix_flrtvc.yml --syntax-check
-  #- ansible-playbook playbook_aix_suma_targets_all.yml --syntax-check
 
   - bash devops/bin/sanity_test.sh
   - bash devops/bin/gen_doc.sh
