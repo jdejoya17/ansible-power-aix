@@ -115,8 +115,16 @@ EXAMPLES = r'''
 
 - name: Mount filesystems provided by a node"
   ibm.power_aix.mount:
-    node: aixbase.aus.stglabs.ibm.com
+    node: ansible-test1
     mount_dir: /mnt
+
+- name: |
+    Mount a filesytems, /tmp/servnfs provided by
+    a node on the mount point /tmp/clientnfs"
+  ibm.power_aix.mount:
+    node: ansible-test1
+    mount_dir: /tmp/servnfs
+    mount_over_dir: /tmp/clientnfs
 
 - name: Unmount remote filesystems
   ibm.power_aix.mount:
@@ -171,7 +179,11 @@ def is_fspath_mounted(module, mount_dir, mount_over_dir):
     """
     global result
 
-    if mount_dir:
+    if mount_dir and mount_over_dir:
+        # when mounting make sure NFS, we check for the NFS
+        # client mount point
+        cmd = "lsfs -l %s" % mount_over_dir
+    elif mount_dir:
         cmd = "lsfs -l %s" % mount_dir
     elif mount_over_dir:
         cmd = "lsfs -l %s" % mount_over_dir

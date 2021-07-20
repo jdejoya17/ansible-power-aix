@@ -9,5 +9,5 @@ Filesystem    512-blocks      Free %Used    Iused %Iused Mounted on
 /dev/hd10opt     2621440   1050416   60%    10048     8% /opt
 /dev/livedump     524288    523552    1%        4     1% /var/adm/ras/livedump
 /ahafs                 -         -    -       35     1% /aha
-carribean-lp4:/tmp/lp4nfs      163840    163152    1%        4     1% /tmp/clientnfs
+ansible-test1:/tmp/servnfs      163840    163152    1%        4     1% /tmp/clientnfs
 

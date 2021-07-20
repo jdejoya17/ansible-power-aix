@@ -12,7 +12,7 @@ from ansible_collections.ibm.power_aix.plugins.modules import mount
 
 from .common.utils import (
     AnsibleExitJson, AnsibleFailJson, exit_json, fail_json,
-    rootdir, lsfs_output_path2, lsfs_output_path3, df_output_path1, 
+    rootdir, lsfs_output_path2, lsfs_output_path3, df_output_path1,
     df_output_path2
 )
 
@@ -39,6 +39,7 @@ init_result = {
     "stdout": '',
     "stderr": ''
 }
+
 
 class TestIsFSPathMounted(unittest.TestCase):
     def setUp(self):
@@ -79,7 +80,7 @@ class TestIsFSPathMounted(unittest.TestCase):
         self.assertIsNone(
             mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
         )
-        
+
     def test_is_none_mount_over_dir(self):
         self.module.params["mount_over_dir"] = "/tmp/testfs"
         self.mount_over_dir = self.module.params["mount_over_dir"]
@@ -125,12 +126,49 @@ class TestIsFSPathMounted(unittest.TestCase):
             mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
         )
 
+    def test_true_nfs_mounted_both_dir_present(self):
+        self.module.params["mount_dir"] = "/tmp/servnfs"
+        self.module.params["mount_over_dir"] = "/tmp/clientnfs"
+        self.mount_dir = self.module.params["mount_dir"]
+        self.mount_over_dir = self.module.params["mount_over_dir"]
+        self.module.run_command.side_effect = [
+            (0, self.lsfs_output3, "sample stderr"),
+            (0, self.df_output2, "sample stderr")
+        ]
+        self.assertTrue(
+            mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
+        )
+
     def test_false_fs_mounted(self):
         self.module.params["mount_dir"] = "/tmp/testfs"
         self.mount_dir = self.module.params["mount_dir"]
         self.module.run_command.side_effect = [
             (0, self.lsfs_output2, "sample stderr"),
             (0, self.df_output2, "sample stderr")
+        ]
+        self.assertFalse(
+            mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
+        )
+
+    def test_false_nfs_mounted(self):
+        self.module.params["mount_dir"] = "/tmp/clientnfs"
+        self.mount_dir = self.module.params["mount_dir"]
+        self.module.run_command.side_effect = [
+            (0, self.lsfs_output3, "sample stderr"),
+            (0, self.df_output1, "sample stderr")
+        ]
+        self.assertFalse(
+            mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
+        )
+
+    def test_false_nfs_mounted_both_dir_present(self):
+        self.module.params["mount_dir"] = "/tmp/servnfs"
+        self.module.params["mount_over_dir"] = "/tmp/clientnfs"
+        self.mount_dir = self.module.params["mount_dir"]
+        self.mount_over_dir = self.module.params["mount_over_dir"]
+        self.module.run_command.side_effect = [
+            (0, self.lsfs_output3, "sample stderr"),
+            (0, self.df_output1, "sample stderr")
         ]
         self.assertFalse(
             mount.is_fspath_mounted(self.module, self.mount_dir, self.mount_over_dir)
