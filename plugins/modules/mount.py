@@ -505,7 +505,7 @@ def main():
         stderr='',
     )
 
-    if module.params['state'] == 'list':
+    if module.params['state'] == 'show':
         fs_list(module)
     elif module.params['state'] == 'mount':
         mount(module)
