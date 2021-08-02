@@ -1,0 +1,13 @@
+---
+vg_name: testvg
+lv_name: testlv
+lv_size: 5
+lv_type: jfs2
+fs_mnt: /tmp/testfs
+fs_type: jfs2
+nfs_lv_name: testnfslv
+nfs_serv: /tmp/servnfs
+nfs_client: /tmp/clientnfs
+pv_list: hdisk1
+mnt_grp: local
+

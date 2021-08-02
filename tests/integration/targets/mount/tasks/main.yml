@@ -1,0 +1,65 @@
+---
+######################################################
+# TC_01: Mounting a Filesystem
+######################################################
+- include: "tc01_s01_mount.yml"
+- include: "tc01_s01_mount.yml"
+
+######################################################
+# TC_02: Mounting a NFS
+######################################################
+- include: "tc02_s01_mount_nfs.yml"
+- include: "tc02_s01_mount_nfs.yml"
+
+######################################################
+# TC_03: Unmount a Filesystem
+######################################################
+- include: "tc03_s01_unmount.yml"
+- include: "tc03_s01_unmount.yml"
+
+######################################################
+# TC_04: Unmount a NFS
+######################################################
+- include: "tc04_s01_unmount_nfs.yml"
+- include: "tc04_s01_unmount_nfs.yml"
+
+#####################################################
+# TC_05: Mount all same type
+#####################################################
+- include: "tc05_s01_mount_group.yml"
+- include: "tc05_s01_mount_group.yml"
+
+#####################################################
+# TC_06: Umount all remote filesystems
+#####################################################
+- include: "tc06_s01_unmount_remote_all.yml"
+- include: "tc06_s01_unmount_remote_all.yml"
+
+#####################################################
+# TC_07: Umount all remote filesytems from a node
+#####################################################
+- include: "tc07_s01_unmount_remote_node.yml"
+- include: "tc07_s01_unmount_remote_node.yml"
+
+######################################################
+# TC_08: Umount all from mount group
+######################################################
+- include: "tc08_s01_unmount_mount_group.yml"
+- include: "tc08_s01_unmount_mount_group.yml"
+
+######################################################
+# TC_xx: List mounted filesystems
+######################################################
+- name: "TEST1: List all mounted filesystems"
+  mount:
+    state: show
+  register: results
+
+- name: "TEST_RESULT: Show standard out: list of mounted filesystems"
+  debug:
+    var: results
+
+- name: "TEST_ASSERT: assert message"
+  assert:
+    that:
+    - results.msg.find( "Mounted filesystems listed in stdout" ) != 1

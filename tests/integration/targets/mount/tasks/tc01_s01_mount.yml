@@ -1,0 +1,81 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+
+- name: "SETUP: Show LVM facts"
+  debug:
+    var: facts
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: true
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+- name: "SETUP: create filesystem"
+  filesystem:
+    state: present
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ lv_name }}"
+    mount_group: "{{ mnt_grp }}"
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TEST1: mount filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ fs_mnt }}"
+  register: results
+
+- name: "TEST_RESULT: show results"
+  debug:
+    var: results
+
+- name: "TEST_ASSERT_RUN1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Mount successful" ) != -1
+    - results.cmd.find( "{{ fs_mnt }}" ) != -1
+  when:
+  - results is changed
+
+- name: "TEST_ASSERT_RUN2: expected results -second run"
+  assert:
+    that:
+    - results.msg.find( "already mounted" ) != -1
+    - results.msg.find( "{{ fs_mnt }}" ) != -1
+  when:
+  - results is not changed
+
+#######################################
+# Teardown Task
+#######################################
+# - name: "TEARDOWN: unmount filesystem"
+#   mount:
+#     state: umount
+#     mount_dir: "{{ fs_mnt }}"
+#   when: results is not changed
