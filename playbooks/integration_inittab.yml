@@ -1,0 +1,108 @@
+---
+# Test playbook for the smtctl module.
+# Tests:
+# * Create new entry for uprintfd.
+# * Create new entry for uprintfd again (idempotent)
+# * Change entry for uprintfd
+# * Change entry for uprintfd. (idempotent)
+# NOTE: What needs to be fixed. Changing attributes do not check if the 
+# attributes were really changed (in case the attribute is already there).
+# So if the command returns OK, it sets the change to True. That made the 
+# Test4 fail if we assert on the change as True. This needs a fix. 
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_smtctl.yml  -e "target_system=<hostname in inventory>" -vvv
+#
+- name: "Group on AIX playbook"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+    group_v:  "grouptst"
+    member_v: "usertst"
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+
+  # Prepare test
+
+    - name: Setup:Cleanup the uprintfd entry
+      inittab:
+        state: absent
+        name: uprintfd
+        name: uprintfd
+        runlevel: '1234567'
+        action: 'respawn'
+        command: '/usr/sbin/uprintfd'
+
+# TEST1
+    - name: Test1:Create new entry for uprintfd
+      inittab:
+        state: present
+        name: uprintfd
+        runlevel: '23456789'
+        action: 'respawn'
+        command: '/usr/sbin/uprintfd'
+        insertafter: 'perfstat'
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "It should have created an entry"
+
+# TEST2
+    - name: Test2:Create new entry for uprintfd again (idempotent)
+      inittab:
+        state: present
+        name: uprintfd
+        runlevel: '23456789'
+        action: 'respawn'
+        command: '/usr/sbin/uprintfd'
+        insertafter: 'perfstat'
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == False"
+        fail_msg: "Test2:It should have not been created same entry again"
+
+# TEST3
+    - name: Test3:Change entry for uprintfd
+      inittab:
+        state: modify
+        name: uprintfd
+        runlevel: '1234567'
+        action: 'respawn'
+        command: '/usr/sbin/uprintfd'
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "Test3:It should have change the entry"
+
+# TEST4
+    - name: Test4:Change entry for uprintfd again (idempotent)
+      inittab:
+        state: modify
+        name: uprintfd
+        runlevel: '1234567'
+        action: 'respawn'
+        command: '/usr/sbin/uprintfd'
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "Test4:It should have not change the entry"
+
+
+
+

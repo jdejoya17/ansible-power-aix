@@ -1,0 +1,114 @@
+---
+# Test playbook for the smtctl module.
+# Tests:
+# * Create new entry for uprintfd.
+# * Create new entry for uprintfd again (idempotent)
+# * Change entry for uprintfd
+# * Change entry for uprintfd. (idempotent)
+# NOTE: What needs to be fixed. Changing attributes do not check if the 
+# attributes were really changed (in case the attribute is already there).
+# So if the command returns OK, it sets the change to True. That made the 
+# Test4 fail if we assert on the change as True. This needs a fix. 
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml test_bootlist.yml  -e "target_system=<hostname in inventory> " -vvv
+#  The -e option allows inputs to overwrite the vars section with customized values.
+# Commands: to help with the test:
+#  lsvg -l rootvg | grep boot   Shows the LV which we are booting from.
+#  lsvg -p rootvg   Find the disk used for the rootvg 
+#  bosboot -a -d "{{ disk_v }}" -l "{{ bootlv_v }}"   How to boot a disk from
+
+- name: "Group on AIX playbook"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+    network_adapter_v: ent0
+    backuplv_v: failsafelv
+    disk_v: hdisk0
+    bootlv_v: hd5
+    backuplv_v: failsafelv
+    cd_lv: cd0
+    client_v: 9.3.140.241
+    bserver_v: 9.3.165.31
+    gateway_v: 9.3.141.1
+    # No Network mask?? 
+  collections:
+  - ibm.power_aix
+
+  tasks:
+
+  # Prepare test
+    - name: Setup:Create a failsfe logical volume
+      lvol:
+        vg: rootvg
+        lv: "{{ backuplv_v }}"
+        state: present
+        size: 2
+        lv_type: boot
+        extra_opts: "-ae"
+
+    - name: Setup:Create boot image into "{{ backuplv_v }}"
+      shell:
+        cmd: "bosboot -aD -l {{ backuplv_v }}"
+
+
+
+    - name: Test1:Set normal and service boot lists
+      bootlist:
+        normal:
+          - device: "{{ disk_v }}"
+            blv: "{{ bootlv_v }}"
+        service:
+          - device: "{{ disk_v }}"
+            blv: "{{ backuplv_v }}"
+      register: result
+    - debug: var=result
+
+    - name: Test2:Set normal and service boot lists (idempotent)
+      bootlist:
+        normal:
+          - device: "{{ disk_v }}"
+            blv: "{{ bootlv_v }}"
+        service:
+          - device: "{{ disk_v }}"
+            blv: "{{ backuplv_v }}"
+      register: result
+    - debug: var=result
+
+
+    - name: Test3:Set normal and service boot lists that include network adapters.
+      bootlist:
+        normal:
+          - device: "{{ disk_v }}"
+            blv: "{{ bootlv_v }}"
+#          - device: hdisk1
+#            blv: "{{ bootlv_v }}"
+#            pathid: "1"
+          - device: "{{ network_adapter_v }}"
+            client: "{{ client_v }}"
+            gateway: "{{ gateway_v }}"
+            bserver: "{{ bserver_v }}"
+#        service:
+#          - device: cd_lv
+      register: result
+    - debug: var=result
+
+
+
+    - name: Retrieve normal and service boot lists
+      bootlist:
+    - name: Print the boot lists
+      debug:
+        var: result.ansible_facts.bootlist
+
+    #Clean up
+
+    - name: Setup:Cleanup the failsfe logical volume
+      lvol:
+        vg: rootvg
+        lv: "{{ backuplv_v }}"
+        state: absent
+
+
+

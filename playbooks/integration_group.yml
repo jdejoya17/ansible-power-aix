@@ -1,0 +1,260 @@
+---
+# Test playbook for the group module.
+# Tests:
+# * Create a group and test idempotency.
+# * Remove a group and test idemptoency.
+# * Add a user and test idempotency.
+# * Remove a user and test idempotency.
+# * Add a group and at the same time, add a user to it.
+# * Add attributes and test idempotency.
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_group.yml  -e "target_system=<hostname in inventory>" -vvv
+#
+- name: "Group on AIX playbook"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+    group_v:  "grouptst"
+    member_v: "usertst"
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+
+  # Prepare test
+  # Remove the test group in case it was left
+    - name: Setup:Remove the group of it exist.
+      group:
+        state: absent
+        name: "{{ group_v }}"
+
+  # Create a user for this test.
+    - name: Setup:Create user " {{ member_v }} "
+      user:
+        state: present
+        name: "{{ member_v }}"
+
+  # Create a group
+    - name: Test 1:Create a group
+      group:
+        state: present
+        name: "{{ group_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "It should have Created a group"
+
+
+  #  Creation of a group is idempotent
+    - name: Test 2:Create same group again (idempotent)
+      group:
+        state: present
+        name: "{{ group_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == false"
+        fail_msg: "Create group {{ group_v }} again idempotent error"
+
+
+  # Add a member to the group
+    - name: Test 3:Add a member to the group
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        user_list_action: 'add'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "The member {{ member_v }} should have been added"
+
+
+  # Add a member Idempotent test
+
+    - name: Test 4:Add the same member again to the group (idempotent)
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        user_list_action: 'add'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == false"
+        fail_msg: "Add member  {{ member_v }} again idempotent error"
+
+
+  # Remove a member.
+
+    - name: TEst 5:Remove a member from the group
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        user_list_action: 'remove'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "The member {{ member_v }} should have been removed."
+
+
+  # Remove a member idempotent
+    - name: Test 6:Remove the same member again from the group (idempotent)
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        user_list_action: 'remove'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == false"
+        fail_msg: "Removing member {{ member_v }} again idempotent error."
+
+    - name: Print
+      debug:
+        msg: "5-------"
+
+  # Remove the group
+    - name: Test 7:Remove the group.
+      group:
+        state: absent
+        name: "{{ group_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that: 
+          - "result.changed == True"
+        fail_msg: "Remove group {{ group_v }} did not work."
+
+  # Remove the group idempotent
+    - name: Test 8:Remove the same group again (idempotent)
+      group:
+        state: absent
+        name: "{{ group_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == false"
+        fail_msg: "Removing group {{ group_v }} again idempotent error."
+
+
+  # Add a group and add a user to the group
+    - name: Test 8:Create a group and add a member.
+      group:
+        state: present
+        name: "{{ group_v }}"
+        user_list_action: 'add'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+          - '"SUCCESSFULLY modified" in result.msg'
+        fail_msg: "It should have created a group and added a user"
+
+  # Remove the group
+    - name: Test 8:Remove the group created with a user.
+      group:
+        state: absent
+        name: "{{ group_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that: 
+          - "result.changed == True"
+        fail_msg: "Remove group {{ group_v }} with user did not work."
+
+  # Modify the attribute of a Group.
+
+    - name: Setup:Create a group and add a member for test 9.
+      group:
+        state: present
+        name: "{{ group_v }}"
+        user_list_action: 'add'
+        user_list_type: 'members'
+        users_list: "{{ member_v }}"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+          - '"SUCCESSFULLY modified" in result.msg'
+        fail_msg: "Setup:It should have created a group and added a user"
+
+    - name: Test 9:Modify a group admin=true
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        group_attributes: "admin=true"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+          - '"attributes SUCCESSFULLY set" in result.msg'
+        fail_msg: "It should have modified admin=true"
+
+  # Modify the attribute of a group. Idempotent test
+
+    - name: Test 10:Modify a group admin=true idempotent.
+      group:
+        state: modify
+        name: "{{ group_v }}"
+        group_attributes: "admin=true"
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == False"
+          - '"attributes were not changed" in result.msg'
+        fail_msg: "It should have not shown any changes for admin=true"
+
+
+  # Clean up
+    # Remove the user for this test.
+    - name: Cleanup:Remove user " {{ member_v }} "
+      user:
+        state: absent
+        name: "{{ member_v }}"
+
+    - name: Cleanup:Remove the group.
+      group:
+        state: absent
+        name: "{{ group_v }}"
+
+
+

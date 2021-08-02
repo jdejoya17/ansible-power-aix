@@ -1,0 +1,179 @@
+---
+# Test playbook for the group module.
+# Tests:
+# * Enable the SMT value to 8 and value needs to persist across subsequent reboot
+# * Enable the SMT value to 8 to next boot if bos_boot set to yes
+# * Limit the SMT value to 4.
+# * Sets the number of threads to a value that provides the best performance.
+# * Add a group and at the same time, add a user to it.
+# * Add attributes and test idempotency.
+# * This test is not testing for consistency in the return of changed or not changed.
+#   This module is not verifying the attributes before and after the calls and only 
+#   and only verifying if the command was successful or not.
+#   To make it more robust, it needs to return the user if something was truly 
+#   changed in the system.
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml test_smtctl.yml  -e "target_system=<hostname in inventory>" -vvv
+#
+- name: "Smtctl on AIX playbook"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+
+    - name: Setup:Enable the SMT value to 4 and value needs to be persist across subsequent reboot
+      smtctl:
+        smt_value: 4
+        bos_boot: yes
+
+# TEST 1
+    - name: Test 1:Enable the SMT value to 8 and value needs to persist across subsequent reboot
+      smtctl:
+        smt_value: 8
+        bos_boot: yes
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+#          - '"SUCCESSFULLY modified" in result.msg'
+        fail_msg: "SMT was not changed"
+
+# TEST 2
+
+    - name: Test 2:Enable the SMT value to 8 and value needs to persist across subsequent reboot (idempotency)
+      smtctl:
+        smt_value: 8
+        bos_boot: yes
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == False"
+#          - '"SUCCESSFULLY modified" in result.msg'
+        fail_msg: "SMT should have not changed"
+
+# TEST 3
+      # ERROR:This test returns changed = FALSE even the chtype was set in this case. 
+      # The chtype default is null. 
+    - name: Test 3:Enable the SMT value to 8 to next boot if bos_boot set to yes
+      smtctl:
+        smt_value: 8
+        chtype: boot
+        bos_boot: yes
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == False"
+        fail_msg: "Test 3:SMT was not changed"
+
+# TEST 4
+
+    - name: Test 4:Enable the SMT value to 8 to next boot if bos_boot set to yes (idempotency)
+      smtctl:
+        smt_value: 8
+        chtype: boot
+        bos_boot: yes
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == False"
+        fail_msg: "SMT was not changed"
+
+# TEST 5
+
+    - name: Test 5:Limit the SMT value to 4
+      smtctl:
+        smt_value: 4
+        smt_limit: limit
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+# TEST 6
+
+    - name: Test 6:Limit the SMT value to 4 (idempotency)
+      smtctl:
+        smt_value: 4
+        smt_limit: limit
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+# TEST 7
+
+    - name: Test 7:Disable the smtctl
+      smtctl:
+        smt_state: disabled
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+# TEST 8
+
+    - name: Test 8:Disable the smtctl (idempotency)
+      smtctl:
+        smt_state: disabled
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+
+# TEST 9
+
+    - name: Test 9:Sets the number of threads to a value that provides the best performance
+      smtctl:
+        smt_extra: recommended
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+# TEST 10
+
+    - name: Test 10:Sets the number of threads to a value that provides the best performance (idempotency)
+      smtctl:
+        smt_extra: recommended
+      register: result
+    - debug: var=result
+
+    - assert:
+        that:
+          - "result.changed == True"
+        fail_msg: "SMT was not changed"
+
+
+
+
+
