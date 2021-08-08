@@ -1,0 +1,69 @@
+---
+#######################################
+# Setup Task
+#######################################
+- name: "SETUP: check if volume group exist"
+  lvm_facts:
+    name: all
+    component: vg
+  register: results
+- debug: var=results
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: "{{ pvs }}"
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  when:
+  - results.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC04_S01: varyoff volume group"
+  lvg:
+    state: varyoff
+    vg_name: "{{ vg_name }}"
+  register: results
+- debug: var=results
+
+- name: "TC04_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} deactivated" ) != -1
+    - results.cmd.find( "varyoffvg" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC04_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.msg.find( "already deactivated" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+#######################################
+# Tear down Task
+#######################################
+# - name: "TEARDOWN: varyon volume group"
+#   lvg:
+#     state: varyon
+#     vg_name: "{{ vg_name }}"
+#   when:
+#   - results is not changed
+
+# - name: "TEARDOWN: remove the volume group"
+#   lvg:
+#     state: absent
+#     vg_name: "{{ vg_name }}"
+#     pvs: "{{ pvs }}"
+#     force: True
+#   when: 
+#   - results is not changed

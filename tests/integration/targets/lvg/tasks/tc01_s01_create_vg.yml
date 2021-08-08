@@ -1,0 +1,46 @@
+---
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC01_S01: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: "{{ pvs }}"
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} created" ) != -1
+    - results.cmd.find( "mkvg" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.cmd.find( "{{ mirror_pool }}" ) != -1
+    - results.cmd.find( "-S") != -1
+    - results.cmd.find( "-f") != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+#######################################
+# Tear down Task
+#######################################
+# - name: "TEARDOWN: remove the volume group"
+#   lvg:
+#     state: absent
+#     vg_name: "{{ vg_name }}"
+#     pvs: "{{ pvs }}"
+#     force: True
+#   when: results.changed == false

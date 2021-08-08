@@ -1,0 +1,63 @@
+---
+#######################################
+# Setup Task
+#######################################
+- name: "SETUP: check if volume group exist"
+  lvm_facts:
+    name: all
+    component: vg
+  register: results
+- debug: var=results
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: "{{ pvs }}"
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  when:
+  - results.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC03_S01: modify a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    auto_on: False
+  register: results
+- debug: var=results
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} modified" ) != -1
+    - results.cmd.find( "chvg" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.cmd.find( "-a n") != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+#######################################
+# Tear down Task
+#######################################
+# - name: "TEARDOWN: remove the volume group"
+#   lvg:
+#     state: absent
+#     vg_name: "{{ vg_name }}"
+#     pvs: "{{ pvs }}"
+#     force: True
+#   when: results.changed == false

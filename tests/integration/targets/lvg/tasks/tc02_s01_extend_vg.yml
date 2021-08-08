@@ -1,0 +1,90 @@
+---
+#######################################
+# Setup Task
+#######################################
+- name: "SETUP: check if volume group exist"
+  lvm_facts:
+    name: all
+    component: vg
+  register: results
+- debug: var=results
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: "{{ pvs }}"
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  when:
+  - results.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC02_S01: extend a volume group - single PV parameter"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: hdisk2
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  register: results
+- debug: var=results
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} extended" ) != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+- name: "TC02_S01: extend a volume group - multiple PV parameter"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: hdisk1 hdisk2 hdisk3
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  register: results
+- debug: var=results
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} extended" ) != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+#######################################
+# Tear down Task
+#######################################
+# - name: "TEARDOWN: remove the volume group"
+#   lvg:
+#     state: absent
+#     vg_name: "{{ vg_name }}"
+#     pvs: hdisk1 hdisk2 hdisk3
+#     force: True
+#   when:
+#   - results is not changed

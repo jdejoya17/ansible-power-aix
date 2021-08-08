@@ -1,0 +1,92 @@
+---
+#######################################
+# Setup down Task
+#######################################
+- name: "SETUP: check if volume group exist"
+  lvm_facts:
+    name: all
+    component: vg
+  register: results
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    vg_type: "{{ vg_type }}"
+    pvs: hdisk1 hdisk2 hdisk3
+    mirror_pool: "{{ mirror_pool }}"
+    force: "{{ force }}"
+  when:
+  - results.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+########################################
+## Actual Task To Be Tested
+########################################
+- name: "TC06_S01: remove one PV from the volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    pvs: hdisk1
+  register: results
+- debug: var=results
+
+- name: "TC06_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "removed from Volume group '{{ vg_name }}'" ) != -1
+    - results.cmd.find( "reducevg" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC06_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+- name: "TC06_S01: reduce another PV from the volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    pvs: hdisk1 hdisk2
+  register: results
+- debug: var=results
+
+- name: "TC06_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "removed from Volume group '{{ vg_name }}'" ) != -1
+    - results.cmd.find( "reducevg" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.rc == 0
+  when:
+  - results is changed
+
+- name: "TC06_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on volume group" ) != -1
+    - results.rc == 0
+  when:
+  - results is not changed
+
+- name: "TC06_S01: remove the volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+  register: results
+  when: results is not changed
+- debug: var=results
+
+- name: "TC06_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "Volume group {{ vg_name }} removed" ) != 1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+    - results.rc == 0
+  when:
+  - results is not skipped

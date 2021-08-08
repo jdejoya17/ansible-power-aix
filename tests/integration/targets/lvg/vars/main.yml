@@ -1,0 +1,6 @@
+---
+vg_name: testvg
+vg_type: scalable
+pvs: hdisk1
+mirror_pool: mp1
+force: True
