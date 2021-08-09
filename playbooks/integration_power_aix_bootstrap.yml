@@ -1,0 +1,185 @@
+---
+# This playbook will test the install of yum and python in a target system (power_aix_bootstrap)
+# Conditions:
+# - Python is installed in the target already.
+#   Action:
+#     -- Uninstall yum if it is installed.
+#     -- Uninstall python.
+#     -- Run the power_aix_bootstrap to install yum and then use yum to install python2
+#     -- Run the power_aix_bootstrap again to test idempotency issues.
+# - Python is installed.
+#   Action:
+#   -- Run power_aix_bootstrap to test idempotency issues.
+# NOTE: The hosts name can not be an alias. It has to match a host that can be 
+# accessed through the network as the role uses the inventory_host and not the ansible_host.
+# variable.
+# #
+- name: "Bootstrap Yum on AIX"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+   remove_v: "0"
+  collections:
+  - ibm.power_aix
+  tasks:
+
+
+#   If python and yum are already install, remove them.
+
+  - name: Verify if python is installed in the remote.
+    raw: "ls /usr/bin/python*"
+    register: output
+    ignore_errors: yes
+  - debug:
+      var: output
+
+  - name: If python is installed in the remote, set remove_v flag.
+    set_fact:
+       remove_v: "1"
+    when: " '0653-341' not in output.stdout"
+
+  - name: Load the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+  - name: If yum utils, remove it
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when:  remove_v == "1" and item is match("yum-utils*")
+  - debug:
+      var: output
+
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+
+  - name: If yum base, remove it
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when:  remove_v == "1" and item is match("yum") and item is not match("yum-metadata")
+  - debug:
+      var: output
+
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+
+  - name: if anything else from yum, remove it.
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when:  remove_v == "1" and item is match("yum")
+  - debug:
+      var: output
+
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+
+  - name: If pysqlite is installed, remove it.
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when: remove_v == "1" and item is match("pysqlite")
+  - debug:
+      var: output
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+
+  - name: If python base is installed, remove it.
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when: remove_v == "1" and item is match("python-[0-9]*")
+  - debug:
+      var: output
+
+  - name: Reload the RPM packages installed.
+    package_facts:
+      manager: auto
+    when: remove_v == "1"
+  - debug: 
+      var: ansible_facts
+
+  - name: If anything else from python, remove it.
+    shell: 
+      cmd: "rpm -e {{ item }}"
+    register: output
+    with_items: "{{ ansible_facts.packages}}"
+    when: remove_v == "1" and item is match("python")
+  - debug:
+      var: output
+
+#   Test the power_aix_bootrap role
+
+  - name: Install yum the power_aix_bootstrap role.
+    import_role:
+      name: power_aix_bootstrap
+    vars:
+      pkgtype: "yum"
+      download_dir: "~"
+      target_dir: "/tmp/.ansible.cpdir"
+
+  - name: Install python using the power_aix_bootstrap role.
+    import_role:
+      name: power_aix_bootstrap
+    vars:
+      pkgtype: "python"
+
+#   Test the power_aix_bootrap role idempotency
+
+  - name: Install yum the power_aix_bootstrap role (idempotent test)
+    import_role:
+      name: power_aix_bootstrap
+    vars:
+      pkgtype: "yum"
+      download_dir: "~"
+      target_dir: "/tmp/.ansible.cpdir"
+
+  - name: Install python using the power_aix_bootstrap role. (idempotent test)
+    import_role:
+      name: power_aix_bootstrap
+    vars:
+      pkgtype: "python"
+
