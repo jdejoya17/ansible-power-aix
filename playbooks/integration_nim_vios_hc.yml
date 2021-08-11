@@ -1,0 +1,39 @@
+---
+# Test playbook for the nim_vios_hc module.
+# Tests:
+# * Install the vioshc on nim
+# * Run vioshc on nim with target VIOS. This will do VIOS health checks.
+# * It can return failure or success depending on the state of the VIOS.
+# To run the playbook:
+# 
+# ansible-playbook -i inventory.yml demo_nim_vios_hc.yml  -e "target_system=<hostname in inventory>" -vvv
+#
+- name: "VIOS health check information"
+  gather_facts: yes
+  hosts: "{{ target_system }}"
+  
+  vars:
+    targets_v: 
+      - "p9zpa-ansible-vios3"
+      - "p9zpa-ansible-vios1"
+     
+  tasks:  
+  #setup vioshc on nim
+  - name: Install the vioshc on NIM
+    import_role:
+       name: power_aix_vioshc
+  
+  #gather the vios health check data    
+  - name: Gather the health check information
+    register: result
+    nim_vios_hc:
+       targets: "{{ targets_v }}"
+       action: health_check
+          
+  - name: Print the health check output
+    debug:
+         var=result
+  - assert:
+      that:
+        - '"FAILURE-HC" not in result.status.values()'
+      fail_msg: 'vios health check has failed for one or all of "{{ targets_v }}".'
