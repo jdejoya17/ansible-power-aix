@@ -1,0 +1,35 @@
+---
+- name: "VIOS alternate disk copy on AIX"
+  hosts: "{{ target_system }}"
+  gather_facts: no
+  vars:
+    time_limit_v:  "08/06/2021 01:09"
+    disk_size_policy_v: "nearest"
+    target_vios_disks_v: 
+      - "p9zpa-ansible-vios3": ["hdisk3"] 
+      - "p9zpa-ansible-vios1": []
+    force_v : False
+    
+
+  tasks:
+    - name: "Perform an alternate disk copy of the rootvg"
+      nim_vios_alt_disk:
+        action: alt_disk_copy
+        targets: "{{ target_vios_disks_v }}"        
+#       time_limit: "{{ time_limit_v }}"
+        disk_size_policy: "{{ disk_size_policy_v }}"
+        force: "{{ force_v }}"
+      register: altdisk_copy_result
+
+    - debug: var=altdisk_copy_result
+
+    - name: "Perform an alternate disk cleanup"
+      nim_vios_alt_disk:
+        targets: "{{target_vios_disks_v}}"
+        action: alt_disk_clean
+        vios_status: "{{ altdisk_copy_result.status }}"
+        nim_node: "{{ altdisk_copy_result.nim_node }}"
+
+      register: altdisk_result
+
+    - debug: var=altdisk_result
