@@ -1,4 +1,18 @@
 ---
+# Test playbook for the nim_vios_alt_disk module.
+# This module does alternate disk copy .
+# Before running the tests, the nim setup for the VIOS objects has to there.
+# Tests:
+# * Run alt_disk_copy.  
+#   This will create the altinst_rootvg on alternate disk .
+#   Prereqs:
+#   Free disks with size greater than or equal to current rootvg on the VIOSes where the operation
+#   has to be performed.
+# * Run alt_disk_clean
+#   This will cleanup the alt disk cleanup. 
+# 
+# ansible-playbook -i inventory.yml demo_nim_vios_alt_disk.yml  -e "target_system=<hostname in inventory>" -vvv
+#
 - name: "VIOS alternate disk copy on AIX"
   hosts: "{{ target_system }}"
   gather_facts: no
