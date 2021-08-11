@@ -1,21 +1,31 @@
 ---
+# Test playbook for the nim_updateios module.
+# This module performs updates on VIOS through nim -o updateios.
+# Before running the tests, the nim setup for the VIOS objects has to there.
+# Tests:
+# * Run updateios install 
+# * Run updateios commit
+# * Run updateios remove filesets
+# * Run vioshc on nim with target VIOS. This will do VIOS health checks.
+# 
+# ansible-playbook -i inventory.yml demo_nim_updateios.yml  -e "target_system=<hostname in inventory>" -vvv
+#
 - name: "Update operation using NIM on VIOS"
-  hosts: nimserver
+  hosts: "{{ target_system }}"
   gather_facts: no
   vars:
-    preview_v:              True
-    # vios_status_v:          {}
-    # vios_nim_node_v:        {}
-    targets_v:              "quimby-vios2"
-    lpp_source_v:           ""
-    rm_filesets_v:          ""
-    rm_installp_bundle_v:   ""
+    preview_v:              False
+    targets_v:              "p9zpa-ansible-vios1"
+    lpp_source_v:           "31300_lpp"
+    rm_filesets_v:          "bos.msg.de_DE.rte"
+    rm_installp_bundle_v:   "31300_rmbundle"
     accept_licenses_v:      True
     manage_cluster_v:       False
     time_limit_v:           "09/30/2020 14:30"
 
   tasks:
-
+  #update the VIOS with older timelimit and check if it returns 
+  #skipped timeout.
   - name: Update VIOS through the NIM Master
     nim_updateios:
       action: install
@@ -27,7 +37,21 @@
       preview: "{{ preview_v }}"
     register: result
   - debug: var=result
+ 
+  # Update the VIOS to higher level with the lpp_source object on NIM.
+  - name: Update VIOS through the NIM Master
+    nim_updateios:
+      action: install
+      targets: "{{ targets_v }}"
+      manage_cluster: "{{ manage_cluster_v }}"
+      accept_licenses: "{{ accept_licenses_v }}"
+      lpp_source: "{{ lpp_source_v }}"
+      preview: "{{ preview_v }}"
+    register: result
+  - debug: var=result
 
+
+ # Remove/uninstall specific fileset from the VIOS.
   - name: Remove a list of filesets from VIOS
     nim_updateios:
       action: remove
@@ -37,7 +61,20 @@
       preview: "{{ preview_v }}"
     register: result
   - debug: var=result
+ 
+# Remove/uninstall specific installp bundle from the VIOS.
+# Create a installp_bundle object in nim.
+  - name: Remove installp_bundle from VIOS
+    nim_updateios:
+      action: remove
+      targets: "{{ targets_v }}"
+      installp_bundle: "{{ rm_installp_bundle_v }}"
+      preview: "{{ preview_v }}"
+    register: result
+  - debug: var=result
 
+ # updateios will have all the filesets in applied state.
+ # commit all the filesets.
   - name: Commit all uncommitted filesets on VIOS
     nim_updateios:
       action: commit
@@ -46,6 +83,7 @@
     register: result
   - debug: var=result
 
+# cleanup any installation failures.
   - name: Cleanup incomplete previous installation from VIOS
     nim_updateios:
       action: cleanup
