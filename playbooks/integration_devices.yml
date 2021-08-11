@@ -1,0 +1,314 @@
+---
+# Test playbook for the devices module.
+# The playbook will use by default the device pkcs11.
+# The pkcs11 device is a pseudo device. It does not have a
+# physical device but it behaves like one.
+# It has the characteristic that it does not allow configuration while
+# the adapter remains in the Available state
+# This test will:
+# - Unconfigure the device.
+# - Configure the device.
+# - Test idempotency for configuration/unconfiguration.
+# - It will change the attributes of the device.
+# - It will verify that changes or not changes are correctly described.
+# - It will remove (delete) the device.
+# Command to run:
+# ansible-playbook -i inventory.yml integration_devices.yml  -e "taret_adapter=<host>" -vvv
+# Special test:
+# If the configuration contains a fibre channel adapter ( fcs0 )
+# The uncommented tests can test recursive defining or removing devices.
+# Also uncommented test modifies parameters in an IP over Ethernet (en0) device.
+#
+
+- name: "Test devices module"
+  hosts: "{{ target_adapter }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+   device_v: pkcs11
+   attributes_v: "trc_adm=yes"
+   attributes_orig_v: "trc_adm=no"
+   device_recursive_v: fcs0
+  tasks:
+
+# Setup:
+  - name: Setup:Remove the "{{ device_v }}"
+    command:
+      cmd: "rmdev -dl {{ device_v }}"
+    ignore_errors: yes
+
+  - name: Setup:Discover device
+    shell:
+      cmd: "cfgmgr"
+
+
+# Tests
+  - name: TEST 1:Unconfigure device "{{ device_v }}"
+    devices:
+      device: "{{ device_v }}"
+      state: defined
+    register: output
+  - debug: var=output
+
+  - name: Collect devices states and Verify "{{ device_v}} is in defined state.
+    setup:
+    register: output
+  - debug: var=output
+
+
+  - assert:
+      that:
+        - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Defined'"
+      fail_msg: "Test 1 error:Device should have been defined "
+
+  - name: TEST 5:Unconfigure device "{{ device_v }}" (idempotent test)
+    devices:
+      device: "{{ device_v }}"
+      state: defined
+    register: output
+  - debug: var=output
+
+
+  - name: TEST 7:Configure device "{{ device_v }}
+    devices:
+      device: "{{ device_v }}"
+      state: available
+    register: output
+  - debug: var=output
+
+
+  - name: Collect devices states and Verify "{{ device_v}} is in available
+    setup:
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+      fail_msg: "Test  error:Device should have been available "
+
+  - name: TEST 8:Configure device "{{ device_v }} again (idempotent test)
+    devices:
+      device: "{{ device_v }}"
+      state: available
+    register: output
+  - debug: var=output
+
+
+  - name: TEST 10:Change attributes "{{ device_v }}"
+    devices:
+      device: "{{ device_v }}"
+      attributes: "{{ attributes_v }}"
+      chtype: 'reset'
+      state: available
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.changed != False"
+      fail_msg: "Test 10 error:Attributes {{ attributes_v }} were not changed"
+
+  - name: TEST 13:Change attributes "{{ device_v }}" (idempotent)
+    devices:
+      device: "{{ device_v }}"
+      attributes: "{{ attributes_v }}"
+      chtype: 'reset'
+      state: available
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.changed == False"
+      fail_msg: "Test 13 error:Attributes {{ attributes_v }} were not supposed to be changed (idempotent)"
+
+  - name: TEST 15:Change attributes "{{ device_v }}" (idempotent)
+    devices:
+      device: "{{ device_v }}"
+      attributes: "{{ attributes_v }}"
+      chtype: 'reset'
+      state: available
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.changed == False"
+      fail_msg: "Test 15 error:Attributes {{ attributes_v }} were not supposed to be changed (idempotent)"
+
+  - name: TEST 17:Remove device "{{ device_v }}"
+    devices:
+      device: "{{ device_v }}"
+      state: removed
+    register: output
+  - debug: var=output
+
+  - name: Collect devices states and Verify "{{ device_v}} is no longer there.
+    setup:
+    register: output
+
+
+  - assert:
+      that:
+        - item != "{{ device_v }}"
+      fail_msg: "Test 17 error:Device should have been removed."
+    with_items: "{{ output.ansible_facts.ansible_devices| flatten(levels=1) }}"
+
+
+  - name: TEST 18:Remove device "{{ device_v }}" again (idempotent)
+    devices:
+      device: "{{ device_v }}"
+      state: removed
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.changed == False"
+      fail_msg: "Test 18 error:Device state should have not changed"
+
+
+  - name: TEST 20:discover a device "{{ device_v }} (configure it again)"
+    devices:
+      device: "all"
+      state: available
+    register: output
+  - debug: var=output
+
+  - name: Collect devices states and Verify "{{ device_v}} is available again
+    setup:
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+      fail_msg: "Test 30 error:Device should have been configured."
+
+
+  - name: TEST 23:Remove device "{{ device_v }}" using state absent
+    devices:
+      device: "{{ device_v }}"
+      state: absent
+    register: output
+  - debug: var=output
+
+  - name: Collect devices states and Verify "{{ device_v}} is no longer there.
+    setup:
+    register: output
+
+
+  - assert:
+      that:
+        - item != "{{ device_v }}"
+      fail_msg: "Test 17 error:Device should have been removed."
+    with_items: "{{ output.ansible_facts.ansible_devices| flatten(levels=1) }}"
+
+  - name: TEST 22:discover a device "{{ device_v }} using state present
+    devices:
+      device: "all"
+      state: available
+    register: output
+  - debug: var=output
+
+  - name: Collect devices states and Verify "{{ device_v}} is available again
+    setup:
+    register: output
+  - debug: var=output
+
+  - assert:
+      that:
+        - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+      fail_msg: "Test 30 error:Device should have been configured."
+
+######################################################
+### This test requires a fibre channel adapter
+######################################################
+
+#    - name: Setup:Configure all devices again
+#      devices:
+#        device: "all"
+#        state: available
+
+#    - name: Test 27:Put "{{ device_recursive_v }}" device and children in define state
+#      devices:
+#        device: "{{ device_recursive_v }}"
+#        state: defined
+#        recursive: 'true'
+#      register: output
+#    - debug: var=output
+
+
+#    - name: Test 30:Put "{{ device_recursive_v }}" device and children in define state (idempotent test)
+#      devices:
+#        device: "{{ device_recursive_v }}"
+#        state: defined
+#        recursive: 'true'
+#      register: output
+#    - debug: var=output
+
+#    - assert:
+#        that:
+#          - "output.changed == False"
+#        fail_msg: "Test 30 error:Attributes {{ attributes_v }} wre not suppose to change"
+
+#    - name: Setup:Configure all devices again
+#      devices:
+#        device: "all"
+#        state: available
+
+
+#    - name: Put the children of device "{{ device_recursive_v }}" in defined state
+#      devices:
+#        parent_device: "{{ device_recursive_v }}"
+#        state: defined
+#      register: output
+#    - debug: var=output
+
+
+#    - name: Remove "{{ device_recursive_v }}" device and children
+#      devices:
+#        device: "{{ device_recursive_v }}"
+#        state: removed
+#        recursive: 'true'
+#      register: output
+#    - debug: var=output
+
+#    - name: Remove "{{ device_recursive_v }}" device and children again (idempotent test)
+#      devices:
+#        device: "{{ device_recursive_v }}"
+#        state: removed
+#        recursive: 'true'
+#      register: output
+#    - debug: var=output
+
+
+#################################################################
+## Next test are for changes in the IP over Ethernet interfaces.
+#################################################################
+
+#    - name: Change en0 MTU speed and disable arp
+#      devices:
+#        device: en0
+#        state: available
+#        attributes:
+#          mtu: 900
+#          arp: 'off'
+#      register: output
+#    - debug: var=output
+
+#    - name: Configure the IP address, netmask and bring en0 up
+#      devices:
+#        device: en0
+#        state: available
+#        attributes:
+#          netaddr: 192.168.0.1
+#          netmask: 255.255.255.0
+#          state: 'up'
+#      register: output
+#    - debug: var=output
+
+
+
+
