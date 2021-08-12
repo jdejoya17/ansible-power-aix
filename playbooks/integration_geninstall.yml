@@ -1,0 +1,38 @@
+# Test playbook for the geninstall module.
+# Tests:
+# * Install an interim fix
+# * List contents of media
+# * Uninstall interim fix
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_geninstall.yml  -e "target_system=<hostname in inventory>" -vvv
+
+---
+- name: "Demo geninstall on AIX"
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    ifix_pkg_name_v:    "PKCS72Q.210422.epkg.Z"
+    ifix_label_v:   "PKCS72Q"
+    device_v:       "/usr/sys/inst.images"
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+  - name: Install an interim fix
+    geninstall:
+      action: install
+      device: "{{ device_v }}"
+      install_list: "{{ ifix_pkg_name_v }}"
+
+  - name: Lists contents of media
+    geninstall:
+      action: list
+      device: "{{ device_v }}"
+
+  - name: Uninstall an interim fix
+    geninstall:
+      action: uninstall
+      install_list: "{{ ifix_label_v }}"
