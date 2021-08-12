@@ -1,0 +1,65 @@
+# Test playbook for the installp module.
+# Tests:
+# * List all software products and installable options
+# * List all customer-reported problems fixed by software products
+# * Install all filesets and extend file systems if necessary
+# * Reinstall and commit
+# * Remove fileset
+# * Reinstall fileset
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_installp.yml  -e "target_system=<hostname in inventory>" -vvv
+
+
+---
+- name: "Demo geninstall on AIX"
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    file_name_v:         "U889493.bff"
+    device_v:            "/usr/sys/inst.images"
+    install_list_1_v:    "all"
+    install_list_2_v:    "bos.net.tcp.ntpd"
+    install_list_3_v:    "bos.net.tcp.server"
+    extend_fs_v:         True
+    commit_v:            yes
+    force_v:             True
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+  - name: List all software products and installable options
+    installp:
+      action: list
+      device: "{{ device_v }}"
+
+  - name: List all customer-reported problems fixed by software products
+    installp:
+      action: list_fixes
+      device: "{{ device_v }}"
+      install_list: "{{ install_list_1_v }}"
+
+  - name: Install all filesets and extend file systems if necessary
+    installp:
+      extend_fs: "{{ extend_fs_v }}"
+      device: "{{ device_v }}"
+      install_list: "{{ install_list_2_v }}"
+
+  - name: Reinstall and commit
+    installp:
+      commit: "{{ commit_v }}"
+      force: "{{ force_v }}"
+      device: "{{ device_v }}"
+      install_list: "{{ install_list_2_v }}"
+
+  - name: Remove fileset
+    installp:
+      action: deinstall
+      install_list: "{{ install_list_3_v }}"
+
+  - name: cleanup task - reinstall fileset
+    installp:
+      device: "{{ device_v }}"
+      install_list: "{{ install_list_3_v }}"
