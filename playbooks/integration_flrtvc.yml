@@ -1,0 +1,82 @@
+# Test playbook for the flrtvc module.
+# Tests:
+# * Check for wget command.
+# * Download all patches for security vulnerabilities.
+# * Download patches for security vulnerabilities - Idempotency Check
+# * Cleanup Task
+# * Install both sec and hyper patches for all filesets starting with devices.fcp
+# * Cleanup Task
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_flrtvc.yml  -e "target_system=<hostname in inventory>" -vvv
+
+---
+- name: Demo FLRTVC on AIX playbook
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    name_v: wget
+    state_v: latest
+    clean_state_v: absent
+    apar_v: sec
+    path_v: /usr/sys/inst.images/work
+    verbose_v: yes
+    force_v: no
+    clean_v: False
+    check_v: no
+    download_only_v: yes
+    increase_v: yes
+    filesets_v: devices.fcp.*
+    save_report_v: yes
+
+  collections: 
+  - ibm.power_aix
+
+  tasks:
+  - name: Check for wget command
+    yum:
+      name: "{{ name_v }}"
+      state: "{{ state_v }}"
+
+  - name: Download patches for security vulnerabilities
+    flrtvc:
+      path: "{{ path_v }}"
+      verbose: "{{ verbose_v }}"
+      apar: "{{ apar_v }}"
+      force: "{{ force_v }}"
+      clean: "{{ clean_v }}"
+      check_only: "{{ check_v }}"
+      download_only: "{{ download_only_v }}"
+      extend_fs: "{{ increase_v }}"
+    register: result
+  - debug: var=result
+
+  - name: Download patches for security vulnerabilities - Idempotency Check
+    flrtvc:
+      apar: "{{ apar_v }}"
+      path: "{{ path_v }}"
+      download_only: "{{ download_only_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Cleanup task
+    file:
+      state: "{{ clean_state_v }}"
+      path: "{{ path_v }}"
+
+  - name: Install both sec and hyper patches for all filesets starting with devices.fcp
+    flrtvc:
+      filesets: "{{ filesets_v }}"
+      path: "{{ path_v }}"
+      save_report: "{{ save_report_v }}"
+      verbose: "{{ verbose_v }}"
+      force: "{{ force_v }}"
+      clean: "{{ clean_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Cleanup task
+    file:
+      state: "{{ clean_state_v }}"
+      path: "{{ path_v }}"
