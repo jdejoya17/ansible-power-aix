@@ -1,0 +1,80 @@
+# Test playbook for the suma module.
+# Tests:
+# * Check oslevel of system
+# * Create file system for system updates
+# * Mount the file system (if necessary)
+# * List SUMA tasks
+# * Check for, and install, system updates
+# * Check last service pack and install
+# * Cleanup task - unmount working directory
+# * Cleanup task - clear working directory
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_suma.yml  -e "target_system=<hostname in inventory>" -vvv
+
+---
+- name: Demo SUMA on AIX
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    download_dir_v: /usr/sys/inst.images/work
+    download_only_v: True
+    attr_v: size=16M
+    vg_v: rootvg
+    auto_mount_v: yes
+    prev_action_v: preview
+    oslevel_v: latest
+    last_sp_v: True
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+  - name: Check oslevel of system
+    shell: "oslevel -s"
+    register: output
+  - debug: var=output
+
+  - name: Create file system for system updates
+    filesystem:
+      filesystem: "{{ download_dir_v }}"
+      state: present
+      vg: "{{ vg_v }}"
+      attributes: "{{ attr_v }}"
+      auto_mount: "{{ auto_mount_v }}"
+
+  - name: Mount the file system (if necessary)
+    mount:
+      mount_dir: "{{ download_dir_v }}"
+      state: mount
+
+  - name: List SUMA tasks
+    suma:
+      action: list
+
+  - name: Check for, and install, system updates
+    suma:
+      oslevel: "{{ oslevel_v }}"
+      download_dir: "{{ download_dir_v }}"
+      download_only: "{{ download_only_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Check last service pack and install
+    suma:
+      action: "{{ prev_action_v }}"
+      oslevel: "{{ oslevel_v }}"
+      last_sp: "{{ last_sp_v }}"
+      download_only: "{{ download_only_v }}"
+      download_dir: "{{ download_dir_v }}"
+
+  - name: Cleanup task - unmount working directory
+    mount:
+      mount_dir: "{{ download_dir_v }}"
+      state: umount
+
+  - name: Cleanup task - clear working directory
+    filesystem:
+      filesystem: "{{ download_dir_v }}"
+      state: absent
