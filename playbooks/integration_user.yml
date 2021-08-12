@@ -1,0 +1,72 @@
+# Test playbook for the user module.
+# Tests:
+# * Create user
+# * Create user - idempotency check
+# * modify account_locked attribute
+# * modify account_locked back to default value
+# * Cleanup task - remove user
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_user.yml  -e "target_system=<hostname in inventory>" -vvv
+
+---
+- name: chuser demo playbook
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    name_v: tester
+    state_v1: present
+    state_v2: absent
+    state_v3: modify
+    change_passwd_on_login_v: False
+    password_v: 1234
+    attributes_v1:
+      account_locked: 'true'
+    attributes_v2:
+      account_locked: 'false'
+
+  collections: 
+  - ibm.power_aix
+
+  tasks:
+  - name: create user
+    user:
+      state: "{{ state_v1 }}"
+      name: "{{ name_v }}"
+      change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+      password: "{{ password_v }}"
+    register: output
+  - debug: var=output
+
+  - name: create user - idempotency check
+    user:
+      state: "{{ state_v1 }}"
+      name: "{{ name_v }}"
+      change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+      password: "{{ password_v }}"
+    register: output
+  - debug: var=output
+
+  - name: modify account_locked
+    user:
+      name: "{{ name_v }}"
+      state: "{{ state_v3 }}"
+      attributes: "{{ attributes_v1 }}"
+    register: output
+  - debug: var=output
+
+  - name: modify account_locked back to default
+    user:
+      name: "{{ name_v }}"
+      state: "{{ state_v3 }}"
+      attributes: "{{ attributes_v2 }}"
+    register: output
+  - debug: var=output
+
+  - name: remove user (cleanup task)
+    user:
+      state: "{{ state_v2 }}"
+      name: "{{ name_v }}"
+    register: output
+  - debug: var=output
