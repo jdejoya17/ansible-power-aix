@@ -1,0 +1,109 @@
+# Test playbook for the emgr module.
+# Tests:
+# * List interim fix on the system
+# * Install ifix package from file generated with epkg
+# * mount ifix
+# * Preview ifix commit and display only errors and warnings
+# * Display contents and topology of an ifix
+# * Unmount ifix
+# * Remove an installed ifix based on its VUID
+# To run the playbook:
+# ansible-playbook -i# To run the playbook:
+# ansible-playbook -i inventory.yml demo_emgr.yml  -e "target_system=<hostname in inventory>" -vvv
+
+---
+- name: emgr demo on AIX
+  hosts: target_system
+  gather_facts: no
+  remote_user: root
+  vars:
+    install_v:      True
+    ifix_package_v: "/usr/sys/inst.images/PKCS72Q.210422.epkg.Z"
+    ifix_label_v:   "PKCS72Q"
+    ifix_vuid_v:    "00F967AE4C00042208040521"
+    work_dir_v:     "/usr/sys/inst.images/work"
+    mount_inst_v:   True
+    from_epkg_v:    yes
+    extend_fs_v:    yes
+    ignore_errors_v: yes
+    overwrite_v:    False
+    preview_v:      True
+    quiet_v:        True
+    verbose_v:      3
+
+  collections:
+  - ibm.power_aix
+
+  tasks:
+  - name: List interim fix on the system
+    emgr:
+      action: list
+    register: output
+  - debug: var=output
+
+  - name: Install ifix package from file generated with epkg
+    emgr:
+      action: install
+      ifix_package: "{{ ifix_package_v }}"
+      working_dir: "{{ work_dir_v }}"
+      from_epkg: "{{ from_epkg_v }}"
+      extend_fs: "{{ extend_fs_v }}"
+      mount_install: "{{ mount_inst_v }}"
+      force: "{{ overwrite_v }}"
+    register: output
+    when: "{{ install_v }}"
+  - debug: var=output
+    when: "{{ install_v }}"
+
+  - name: mount ifix
+    emgr:
+      action: mount
+      ifix_label: "{{ ifix_label_v }}"
+    register: output
+  - debug: var=output
+
+  - name: List a specific ifix data in details
+    emgr:
+      action: list
+      ifix_label: "{{ ifix_label_v }}"
+      verbose: "{{ verbose_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Check an ifix
+    emgr:
+      action: check
+      ifix_label: "{{ ifix_label_v }}"
+    ignore_errors: "{{ ignore_errors_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Preview ifix commit and display only errors and warnings
+    emgr:
+      action: commit
+      ifix_label: "{{ ifix_label_v }}"
+      preview: "{{ preview_v }}"
+      quiet: "{{ quiet_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Display contents and topology of an ifix
+    emgr:
+      action: display_ifix
+      ifix_package: "{{ ifix_package_v }}"
+    register: output
+  - debug: var=output
+
+  - name: unmount ifix
+    emgr:
+      action: unmount
+      ifix_label: "{{ ifix_label_v }}"
+    register: output
+  - debug: var=output
+
+  - name: Remove an installed ifix based on its VUID
+    emgr:
+      action: remove
+      ifix_vuid: "{{ ifix_vuid_v }}"
+    register: output
+  - debug: var=output
