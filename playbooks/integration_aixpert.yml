@@ -1,0 +1,119 @@
+---
+# Test playbook for the aixpert module.
+# The playbook will use by default the device pkcs11.
+# Playbook is self contain and it does not need any setup.
+# physical device but it behaves like one.
+# This test will:
+# - Apply the medium security to the system
+# - Save the default configuration to an xml file. (The test will verify if the file exist)
+# - Test the default configuration file for idempotency problems.
+# - Test that if the file to save is in a path that does not exist, it should return an error.
+# - Test query the configuration.
+# - Test to undo the configuration.
+# NOTE: Test 7 is failing, even by running the command manually.
+#
+
+- name: "Test devices module"
+  hosts: "{{ target_system }}"
+  remote_user: root
+  gather_facts: no
+  vars:
+
+   save_bad_file_v: /home/test123321/norm.xml
+   save_bad_folder_v: /home/test123321
+   save_good_file_v: /tmp/norm.xml
+
+  tasks:
+
+# Setup:
+
+  - name: "Setup:Remove any configuration file if any"
+    file:
+      path: "{{ save_bad_folder_v }}"
+      state: absent
+
+# Tests
+
+
+  - name: "Test 0:Apply the medium security to the system"
+    aixpert:
+      mode: apply
+      level: medium
+
+
+  - name: "Test1:Save default level rules in normal format"
+    aixpert:
+      mode: save
+      level: default
+      norm_fmt_file: "{{ save_good_file_v }}"
+
+  - name: Check that the file was created
+    stat:
+      path: "{{ save_good_file_v }}"
+    register: stat_result
+
+  - assert:
+      that: 
+        -  stat_result.stat.exists
+      fail_msg: "Test 1 error:The fules file {{ save_good_file_v }} was not created. "
+
+  - name: "Test3:Save default level rules in normal format (idempotent test)"
+    aixpert:
+      mode: save
+      level: default
+      norm_fmt_file: "{{ save_good_file_v }}"
+
+  - name: "Test 5:Save default level rules in normal format in a folder that does not exist:expect error"
+    aixpert:
+      mode: save
+      level: default
+      norm_fmt_file: "{{ save_bad_file_v }}"
+    ignore_errors: yes
+    register: output
+
+  - debug: var=output
+
+  - assert:
+      that: 
+        - output.rc
+      fail_msg: "Test 5:Save default file should have failed as the folder does not exist. "
+
+# This test is returning error. 
+# The command line also returns the error:
+# aixpert -f /tmp/norm.xml
+#  - name: "Test 7:Apply rules using saved profile"
+#    aixpert:
+#      mode: apply
+#      profile: "{{ save_good_file_v }}"
+#
+# Error:
+#        "do_action(): rule(dls_tcbupdate): warning.",
+#        "do_action(): Warning: Prereq failed for prereqtcb",
+#        "do_action(): rule(dls_ISSServerSensorFull): warning.",
+#        "do_action(): Warning: Prereq failed for prereqRSSSFull",
+#        "do_action(): rule(dls_ISSServerSensorLite): warning.",
+#        "do_action(): Warning: Prereq failed for prereqRSSSLite"
+
+  - name: "Test 8:Apply rules using saved profile that does not exist"
+    aixpert:
+      mode: apply
+      profile: "{{ save_bad_file_v }}"
+    ignore_errors: yes
+    register: output
+
+  - assert:
+      that: 
+        - not output.changed
+      fail_msg: "Test 8:Apply rules from an inexisting file should not have changed "
+
+
+  - name: "Test 10:Query the settings"
+    aixpert:
+      mode: query
+
+  - name: "Test 12:Undo the settings"
+    aixpert:
+      mode: undo
+
+
+
