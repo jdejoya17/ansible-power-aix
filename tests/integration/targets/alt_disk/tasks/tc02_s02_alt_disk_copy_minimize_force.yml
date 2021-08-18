@@ -1,0 +1,19 @@
+---
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC02_S02: copy rootvg - find disk with minimize policy - force"
+  alt_disk:
+    action: copy
+    disk_size_policy: "{{ disk_size_policy_min }}"
+    force: "{{ force }}"
+  register: results
+  ignore_errors: true
+- debug: var=results
+
+- name: "TC02_S02_ASSERT: expected results - first/second run"
+  assert:
+    that:
+    - results.msg.find( "alt_disk copy operation completed successfully" ) != -1
+    - results.cmd.find( "alt_disk_copy" ) != -1
+  when: results is changed

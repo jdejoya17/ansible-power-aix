@@ -1,0 +1,4 @@
+---
+pv_list: ["hdisk1", "hdisk2", "hdisk3"]
+force: true
+disk_size_policy_min: minimize

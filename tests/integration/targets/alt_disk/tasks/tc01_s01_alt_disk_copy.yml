@@ -1,0 +1,24 @@
+---
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC01_S01: copy rootvg to target disk"
+  alt_disk:
+    action: copy
+    targets: "{{ pv_list }}"
+  register: results
+  ignore_errors: true
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "alt_disk copy operation completed successfully" ) != -1
+    - results.cmd.find( "alt_disk_copy" ) != -1
+  when: results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "An alternate disk already exists" ) != -1
+  when: results is failed

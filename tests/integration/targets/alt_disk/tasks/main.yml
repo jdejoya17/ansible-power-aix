@@ -1,0 +1,36 @@
+---
+#######################################################
+# TC01_S01: create copy of rootvg (alt_disk_copy)
+#######################################################
+- include: "tc01_s01_alt_disk_copy.yml"
+- include: "tc01_s01_alt_disk_copy.yml"
+
+########################################################
+# TC02_S01: create copy of rootvg (alt_disk_copy) -force
+########################################################
+- include: "tc02_s01_alt_disk_copy_force.yml"
+# - include: "tc02_s01_alt_disk_copy_force.yml"
+
+#######################################################
+# TC03_S01: delete rootvg copy - specify disks
+#######################################################
+- include: "tc03_s01_alt_disk_clean_with_hdisks.yml"
+- include: "tc03_s01_alt_disk_clean_with_hdisks.yml"
+
+#######################################################
+# TC01_S02: create copy of rootvg - minimize policy
+#######################################################
+- include: "tc01_s02_alt_disk_copy_minimize.yml"
+- include: "tc01_s02_alt_disk_copy_minimize.yml"
+
+#######################################################
+# TC02_S02: create copy of rootvg - minimize policy - force
+#######################################################
+- include: "tc02_s02_alt_disk_copy_minimize_force.yml"
+# - include: "tc02_s02_alt_disk_copy_minimize_force.yml"
+
+#######################################################
+# TC03_S02: delete rootvg copy - do not specify disks
+#######################################################
+- include: "tc03_s02_alt_disk_clean_no_hdisks.yml"
+- include: "tc03_s02_alt_disk_clean_no_hdisks.yml"

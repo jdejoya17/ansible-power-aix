@@ -1,0 +1,24 @@
+---
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC03_S01: delete rootvg copy"
+  alt_disk:
+    action: clean
+    targets: "{{ pv_list }}"
+  register: results
+  ignore_errors: true
+- debug: var=results
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "alt_disk clean operation completed successfully" ) != -1
+    - results.cmd.find( "alt_rootvg_op" ) != -1
+  when: results is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "not an alternate install rootvg" ) != -1
+  when: results is failed
