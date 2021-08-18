@@ -1,0 +1,178 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc04_s02_alt_disk_mksysb_second_run || echo "first run"
+  register: first_run
+
+- name: "SETUP: create a volume group for backup image"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list_m }}"
+    force: "{{ force }}"
+  register: lvg_results
+  when:
+  - first_run.stdout.find( "first run" ) != -1
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create logical volume for backup image"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size_m }}"
+  register: results
+  when:
+  - first_run.stdout.find( "first run" ) != -1
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+- name: "SETUP: create filesystem for backup image"
+  filesystem:
+    state: present
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ lv_name }}"
+  when:
+  - first_run.stdout.find( "first run" ) != -1
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
+
+- name: "SETUP: check if filesystem is mounted"
+  command: df -g
+  register: df_results
+
+- name: "SETUP: mount filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ fs_mnt }}"
+  register: mount_results
+  when:
+  - first_run.stdout.find( "first run" ) != -1
+  - df_results.stdout.find( "{{ fs_mnt }}" ) == -1
+
+- name: "SETUP: check if rootvg backup image exist"
+  shell: ls "{{ backup_location_m }}" || echo "backup does not exist"
+  register: check_backup
+- debug: var=check_backup
+
+- name: "SETUP: mksysb to create a rootvg backup image"
+  backup:
+    action: create
+    type: "{{ type_m }}"
+    location: "{{ backup_location_m }}"
+    exclude_files: "{{ exclude_files }}"
+    extend_fs: "{{ extend_fs }}"
+    exclude_packing_files: "{{ exclude_packing_files }}"
+    flags: "{{ mksysb_flags }}"
+  register: results
+  when: 
+  - check_backup.stdout.find( "backup does not exist" ) != -1
+  - mount_results is changed
+
+- name: "SETUP: increase filesystem to move mksysb image"
+  filesystem:
+    state: present
+    filesystem: "{{ restore_fs }}"
+    attributes: size="{{ restore_location_size }}"
+
+- name: "SETUP: make sure the limits for file and data are unlimited"
+  copy:
+    src: limits
+    dest: /etc/security/
+
+- name: "SETUP: move mksysb image to /tmp"
+  copy:
+    remote_src: yes
+    src: "{{ backup_location_m }}"
+    dest: "{{ restore_location }}"
+  when:
+  - (check_backup.stdout.find( "{{ backup_location_m }}" ) != -1) or
+    (results is changed)
+    
+
+- name: "unmount the filesystem"
+  mount:
+    state: umount
+    mount_dir: "{{ fs_mnt }}"
+  register: unmount_results
+  when:
+  - (df_results.stdout.find( "{{ fs_mnt }}" ) != -1) or 
+    (results is changed) or
+    (mount_results is changed)
+  - first_run.stdout.find( "first run" ) != -1
+
+- name: "delete volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    delete_lvs: "{{ delete_lvs }}"
+  when:
+  - (facts.ansible_facts.LVM.VGs.{{ vg_name }} is defined) or (lvg_results is changed) 
+  - unmount_results is changed 
+  - first_run.stdout.find( "first run" ) != -1
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TEST1: install the mksysb image to disk"
+  backup:
+    action: restore
+    type: "{{ type_m }}"
+    location: "{{ restore_location }}"
+    disk: "{{ pv_list_m }}"
+    phase: "{{ phase }}"
+    remain_nim_client: "{{ remain_nim_client }}"
+    import_vg: "{{ import_vg }}"
+    debug: "{{ debug }}"
+    bootlist: "{{ bootlist }}"
+  register: results
+  ignore_errors: yes
+- debug: var=results
+
+- name: "TEST_ASSERT_RUN1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "AIX restore backup operation successful" ) != -1
+    - results.cmd.find( "alt_disk_mksysb" ) != -1
+  when: results is changed
+
+- name: "SETUP: make sure not to delete volume group again"
+  command: touch "/tmp/tc04_s02_alt_disk_mksysb_second_run"
+  when: results is changed
+
+- name: "TEST_ASSERT_RUN2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "AIX restore backup operation failed" ) != -1
+    # 0505-126 alt_disk_install: target disk <pv_name> has a volume group
+    # assigned to it.
+    - results.stderr.find( "0505-126" ) != -1 or results.stdout.find( "0505-126" ) != -1
+  when: results is failed
+
+- name: "SETUP: cleanup temporary file /tmp/tc4_s02_alt_disk_mksysb_second_run"
+  command: rm "/tmp/tc04_s02_alt_disk_mksysb_second_run"
+  when: results is failed
+
+##################################
+# Teardown Tasks
+##################################
+- name: "TEARDOWN: delete the altinst_rootvg"
+  alt_disk:
+    action: clean
+    targets: "{{ pv_list_m }}"
+  when:
+  - results is failed
+
+- name: "TEARDOWN: delete image.data in /"
+  shell: rm /image.data
+  when:
+  - results is failed

@@ -1,0 +1,35 @@
+---
+type:                     "savevg"
+backup_location:          "/tmp/testvg_backup"
+exclude_data:             False
+create_data_file:         False
+extend_fs:                True
+force:                    True
+data_file:                "/tmp/vgdata/testvg/testvg.data"
+verbose:                  True
+vg_name:                  "testvg"
+pv_list:                  hdisk1 hdisk2 hdisk3
+lv_name:                  "testlv"
+lv_size:                  5
+lv_type:                  "jfs2"
+fs_mnt:                   "/tmp/testfs"
+fs_type:                  "jfs2"
+filepath:                 "/tmp/testfs/newfile"
+restvg_flags:             "-n"  #ignore existing MAP files
+type_m:                   "mksysb"
+backup_location_m:        "/tmp/testfs/rootvg_backup"
+pv_list_m:                ["hdisk1", "hdisk2", "hdisk3"]
+lv_size_m:                5G
+delete_lvs:               True
+exclude_files:            False
+exclude_packing_files:    False
+mksysb_flags:             "-G"    # Excludes WPAR file systems
+restore_fs:               "/tmp"
+restore_location:         "/tmp/rootvg_backup"
+restore_location_size:    5G
+phase:                    "all"
+remain_nim_client:        True
+import_vg:                False
+debug:                    False
+bootlist:                 True
+

@@ -1,0 +1,166 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  register: lvg_results
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+  register: lvol_results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+- name: "SETUP: create filesystem"
+  filesystem:
+    state: present
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ lv_name }}"
+  when: (lvol_results is changed) or 
+        (facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}")
+
+- name: "SETUP: check if filesystem is mounted"
+  command: df
+  register: df_results
+
+- name: "SETUP: mount filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ fs_mnt }}"
+  register: mount_results
+  when:
+  - df_results.stdout.find( "{{ fs_mnt }}" ) == -1
+
+- name: "SETUP: check if file exists"
+  shell: ls "{{ filepath }}" || echo "create file"
+  register: results
+
+- name: "SETUP: create file in mounted filesystem"
+  command: touch "{{ filepath }}"
+  when:
+  - results.stdout.find( "create file" ) != -1
+
+- name: "SETUP: savevg to create a vg backup image"
+  backup:
+    action: create
+    type: "{{ type }}"
+    name: "{{ vg_name }}"
+    location: "{{ backup_location }}"
+    exclude_data: "{{ exclude_data }}"
+    create_data_file: "{{ create_data_file }}"
+    extend_fs: "{{ extend_fs }}"
+  register: results
+  when: (facts.ansible_facts.LVM.VGs.{{ vg_name }} is defined) or
+        (lvol_results is changed)
+- debug: var=results
+
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc03_s01_restvg_second_run || echo "first run"
+  register: first_run
+
+- name: "SETUP: umount filesystem"
+  mount:
+    state: umount
+    mount_dir: "{{ fs_mnt }}"
+  register: unmount_results
+  when:
+  - (df_results.stdout.find( "{{ fs_mnt }}" ) != -1) or 
+    (results is changed) or
+    (mount_results is changed)
+  - first_run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: delete volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    delete_lvs: true
+  when: 
+  - (facts.ansible_facts.LVM.VGs.{{ vg_name }} is defined) or (lvg_results is changed) 
+  - unmount_results is changed 
+  - first_run.stdout.find( "first run" ) != -1
+
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TEST1: restvg to restore the backup image"
+  backup:
+    action: restore
+    type: "{{ type }}"
+    name: "{{ pv_list }}"
+    location: "{{ backup_location }}"
+    data_file: "{{ data_file }}"
+    exclude_data: "{{ exclude_data }}"
+    flags: "{{ restvg_flags }}"
+  register: results
+  ignore_errors: yes
+- debug: var=results
+
+- name: "TEST_ASSERT_RUN1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "AIX restore backup operation successful" ) != -1
+    - results.cmd.find( "restvg" ) != -1
+    - results.cmd.find( "{{ backup_location }}" ) != -1
+  when: results is changed
+
+- name: "SETUP: make sure not to delete volume group again"
+  command: touch "/tmp/tc03_s01_restvg_second_run"
+  when: results is changed
+
+- name: "TEST_ASSERT_RUN2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "AIX restore backup operation failed" ) != -1
+    # 0512-037 restvg: Target Disk hdisk1 Already belongs to a Volume Group.
+    # Restore of Volume Group canceled.
+    - results.stderr.find( "0512-037" ) != -1 or results.stdout.find( "0512-037" ) != -1
+  when: results is failed
+
+- name: "SETUP: cleanup temporary file /tmp/tc03_s01_restvg_second_run"
+  command: rm "/tmp/tc03_s01_restvg_second_run"
+  when: results is failed
+
+##################################
+# Teardown Tasks
+##################################
+- name: "TEARDOWN: delete backup image"
+  command: rm "{{ backup_location }}"
+  when: results is failed
+
+- name: "TEARDOWN: delete /tmp/vgdata"
+  command: rm -rf "/tmp/vgdata"
+  when: results is failed
+
+- name: "TEARDOWN: umount filesystem"
+  mount:
+    state: umount
+    mount_dir: "{{ fs_mnt }}"
+  when: results is failed
+
+- name: "TEARDOWN: delete volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    delete_lvs: true
+  when: results is failed

@@ -1,0 +1,95 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+- name: "SETUP: create filesystem"
+  filesystem:
+    state: present
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ lv_name }}"
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
+
+- name: "SETUP: check if filesystem is mounted"
+  command: df
+  register: results
+
+- name: "SETUP: mount filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ fs_mnt }}"
+  when:
+  - results.stdout.find( "{{ fs_mnt }}" ) == -1
+
+- name: "SETUP: check if file exists"
+  shell: ls "{{ filepath }}" || echo "create file"
+  register: results
+
+- name: "SETUP: create file in mounted filesystem"
+  command: touch "{{ filepath }}"
+  when:
+  - results.stdout.find( "create file" ) != -1
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TEST1: savevg to create a vg backup image - force option"
+  backup:
+    action: create
+    type: "{{ type }}"
+    name: "{{ vg_name }}"
+    location: "{{ backup_location }}"
+    exclude_data: "{{ exclude_data }}"
+    create_data_file: "{{ create_data_file }}"
+    extend_fs: "{{ extend_fs }}"
+    force: "{{ force }}"
+  register: results
+- debug: var=results
+
+- name: "TEST_ASSERT_RUN: expected results - first/second run"
+  assert:
+    that:
+    - results.msg.find( "AIX create backup operation successful" ) != -1
+    - results.cmd.find( "savevg" ) != -1
+    - results.cmd.find( "{{ backup_location }}" ) != -1
+    - results.cmd.find( "{{ vg_name }}" ) != -1
+  when: results is changed
+
+##################################
+# Teardown Tasks
+##################################
+# - name: "TEARDOWN: delete backup image"
+#   command: rm "{{ backup_location }}"
+#   when: results is not changed
+
+# - name: "TEARDOWN: delete /tmp/vgdata"
+#   command: rm -rf "/tmp/vgdata"
+#   when: results is not changed

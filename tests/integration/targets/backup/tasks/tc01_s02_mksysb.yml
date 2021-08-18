@@ -1,0 +1,79 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create a volume group for backup image"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list_m }}"
+    force: "{{ force }}"
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create logical volume for backup image"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size_m }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+- name: "SETUP: create filesystem for backup image"
+  filesystem:
+    state: present
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ lv_name }}"
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
+
+- name: "SETUP: check if filesystem is mounted"
+  command: df
+  register: results
+
+- name: "SETUP: mount filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ fs_mnt }}"
+  when:
+  - results.stdout.find( "{{ fs_mnt }}" ) == -1
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TEST1: mksysb to create a rootvg backup image"
+  backup:
+    action: create
+    type: "{{ type_m }}"
+    location: "{{ backup_location_m }}"
+    exclude_files: "{{ exclude_files }}"
+    extend_fs: "{{ extend_fs }}"
+    exclude_packing_files: "{{ exclude_packing_files }}"
+    flags: "{{ mksysb_flags }}"
+  register: results
+- debug: var=results
+
+- name: "TEST_ASSERT_RUN1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "AIX create backup operation successful" ) != -1
+    - results.cmd.find( "mksysb" ) != -1
+    - results.cmd.find( "{{ backup_location_m }}" ) != -1
+  when: results is changed
+
+- name: "TEST_ASSERT_RUN2: expected results - second run"
+  assert:
+    that:
+      - results.msg.find( "Backup images for rootvg already exists" ) != -1
+  when: results is not changed
