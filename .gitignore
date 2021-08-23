@@ -1,5 +1,5 @@
 playbooks/*issue*
-devops
+devops/ansible_test
 .travis.yml
 .DS_Store
 .vscode

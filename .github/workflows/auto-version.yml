@@ -1,0 +1,36 @@
+---
+name: run ibm.power_aix collection auto file versioning
+
+on:
+  pull_request:
+    branches: [ dev-collection ]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+jobs:
+  auto-version:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible_collections/ibm/power_aix
+        
+    name: auto version changed module files
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v2
+      with:
+        path: ansible_collections/ibm/power_aix
+        
+    - name: get list of changed files in the pull request
+      uses: jitterbit/get-changed-files@v1
+      id: files
+      with:
+        format: space-delimited
+    
+    - name: print output
+      run: |
+        for changed_file in ${{ steps.files.outputs.all }}
+        do
+          devops/bin/auto_version_module.py "${changed_file}"
+        done
