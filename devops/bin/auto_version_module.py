@@ -71,6 +71,7 @@ def main():
         return
 
     # read lines
+    lines = None
     with open(filename, "r") as f:
         lines = f.readlines()
         # third line is where the file version should be
@@ -79,7 +80,6 @@ def main():
         found = re.search(pattern, file_version_line)
         # print([file_version_line, type(file_version_line), pattern, found])
         if found:
-            print("has file version")
             pattern = r"(\d+?)\.(\d+?)\.(\d+?)\.(\d+?)"
             file_version = re.search(pattern, file_version_line)
             major = file_version.group(1)
@@ -91,17 +91,21 @@ def main():
             new_file_version += patch + "."
             new_file_version += str(int(change)+1)
             lines[2] = re.sub(pattern, new_file_version, file_version_line)
-            print(lines[2])
         else:
-            print("needs file version")
             version_eyecatcher = "# (for dev use only) {0} ".format("module")
             version_eyecatcher += "file version: {0}.{1}.{2}.0".format(
                 major, minor, patch
             )
-            print(version_eyecatcher)
-        print(filename)
+            lines.insert(2, version_eyecatcher)
 
-        # edit file
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        print(lines[2])
+
+    print(filename)
 
     return
 
