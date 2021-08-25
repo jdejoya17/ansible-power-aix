@@ -1,0 +1,14 @@
+---
+vg_name: "testvg"
+pv_list: hdisk1 hdisk2
+force: true
+delete_lvs: true
+lv_name: "testlv"
+lv_type: "jfs2"
+lv_size: 5
+lv_size_add: "+1M"
+lv_size_new: "1G"
+lv_policy_new: minimum
+lv_copies: 1
+lv_copies_new: 2
+lv_name_new: "newtestlv"

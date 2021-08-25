@@ -1,0 +1,82 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: fetch LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  register: lvg_results
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: check if /tmp/tc08_s01_remove_lv_second_run"
+  shell: ls /tmp/tc08_s01_remove_lv_second_run || echo "first run"
+  register: check_run
+
+- name: "SETUP: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+  when:
+  - (lvg_results is changed) or
+    (facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined)
+  - check_run.stdout.find( "first run" ) != -1
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC08_S01: remove logical volume"
+  lvol:
+    state: absent
+    lv: "{{ lv_name }}"
+  register: results
+- debug: var=results
+
+- name: "TC08_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Logical volume {{ lv_name }} removed" ) != -1
+    - results.cmd.find( "rmlv" ) != -1
+  when:
+  - results is changed
+
+- name: "SETUP: make sure not to create the logical volume again"
+  command: touch "/tmp/tc08_s01_remove_lv_second_run"
+  when:
+  - results is changed
+
+- name: "TC08_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "does not exist, there is no need to remove" ) != -1
+  when:
+  - results is not changed
+#
+#######################################
+# Teardown Tasks
+#######################################
+- name: "TEARDOWN: delete /tmp/tc08_s01_remove_lv_second_run"
+  command: rm /tmp/tc08_s01_remove_lv_second_run
+  when:
+  - results is not changed
+
+- name: "TEARDOWN: delete volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    delete_lvs: "{{ delete_lvs }}"
+  when:
+  - results is not changed

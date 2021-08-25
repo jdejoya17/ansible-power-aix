@@ -1,0 +1,58 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: fetch LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  register: lvg_results
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+  when:
+  - (lvg_results is changed) or
+    (facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined)
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC03_S01: extend logical volume to new size"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size_new }}"
+  register: results
+- debug: var=results
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "extended to {{ lv_size_new }}" ) != -1
+  when:
+  - results is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "There is no need to extend the logical volume" ) != -1
+  when:
+  - results is not changed

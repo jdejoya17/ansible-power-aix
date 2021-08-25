@@ -1,0 +1,48 @@
+---
+######################################################
+# TC_01: creating a logical volume
+######################################################
+- include: "tc01_s01_create_lv.yml"
+- include: "tc01_s01_create_lv.yml"
+
+######################################################
+# TC_02: extend a logical volume by increment
+######################################################
+- include: "tc02_s01_extend_lv_plus.yml"
+- include: "tc02_s01_extend_lv_plus.yml"
+
+######################################################
+# TC_03: extend a logical volume to new size
+######################################################
+- include: "tc03_s01_extend_lv.yml"
+- include: "tc03_s01_extend_lv.yml"
+#
+######################################################
+# TC_04: rename a logical volume
+######################################################
+- include: "tc04_s01_modify_lv_rename.yml"
+- include: "tc04_s01_modify_lv_rename.yml"
+
+######################################################
+# TC_05: modify a logical volume to attribute
+######################################################
+- include: "tc05_s01_modify_lv_attr.yml"
+- include: "tc05_s01_modify_lv_attr.yml"
+
+######################################################
+# TC_06: add copies to logical volume
+######################################################
+- include: "tc06_s01_modify_lv_add_copies.yml"
+- include: "tc06_s01_modify_lv_add_copies.yml"
+
+######################################################
+# TC_07: remove copies to logical volume
+######################################################
+- include: "tc07_s01_modify_lv_remove_copies.yml"
+- include: "tc07_s01_modify_lv_remove_copies.yml"
+
+######################################################
+# TC_08: remove logical volume
+######################################################
+- include: "tc08_s01_remove_lv.yml"
+- include: "tc08_s01_remove_lv.yml"

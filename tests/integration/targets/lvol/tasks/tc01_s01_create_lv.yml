@@ -1,0 +1,49 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: fetch LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  register: check
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+- debug: var=check
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC01_S01: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Logical volume {{ lv_name }} created" ) != -1
+    - results.cmd.find( "mklv" ) != -1
+  when:
+  - results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes were needed on logical volume" ) != -1
+  when:
+  - results is not changed
