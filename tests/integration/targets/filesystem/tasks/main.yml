@@ -1,0 +1,48 @@
+---
+######################################################
+# TC_01_S01: creating a filesystem
+######################################################
+- include: "tc01_s01_create_fs.yml"
+- include: "tc01_s01_create_fs.yml"
+
+######################################################
+# TC_02_S01: modify a filesystem
+######################################################
+- include: "tc02_s01_modify_fs.yml"
+- include: "tc02_s01_modify_fs.yml"
+
+######################################################
+# TC_03_S01: remove a filesystem
+######################################################
+- include: "tc03_s01_remove_fs.yml"
+- include: "tc03_s01_remove_fs.yml"
+
+######################################################
+# NOTES - NOTES - NOTES - NOTES - NOTES - NOTES
+# for some reason ansible errors out on tc01_s02
+# even though it created an entry in /etc/filesystem
+# but not mount the NFS. Gives me the following error
+# mount: 1831-011 access denied for 
+# p9zpa-ansible-test1.aus.stglabs.ibm.com:/tmp/servnfs
+# mount: 1831-008 giving up on
+# p9zpa-ansible-test1.aus.stglabs.ibm.com:/tmp/servnfs
+# Even though manually running the commands outlined
+# in tc01_s02 will successfully run as expected
+######################################################
+######################################################
+# TC_01_S02: create a remote filesystem
+######################################################
+- include: "tc01_s02_create_nfs.yml"
+- include: "tc01_s02_create_nfs.yml"
+
+######################################################
+# TC_02_S02: modify a remote filesystem
+######################################################
+- include: "tc02_s02_modify_nfs.yml"
+- include: "tc02_s02_modify_nfs.yml"
+
+######################################################
+# TC_03_S02: remove a remote filesystem
+######################################################
+- include: "tc03_s02_remove_nfs.yml"
+- include: "tc03_s02_remove_nfs.yml"

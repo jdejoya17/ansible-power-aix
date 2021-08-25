@@ -1,0 +1,18 @@
+---
+vg_name: "testvg"
+pv_list: hdisk1
+force: true
+delete_lvs: true
+lv_name: "testlv"
+lv_size: 5
+lv_type: "jfs2"
+fs_mnt: "/tmp/testfs1"
+fs_mnt_vg: "/tmp/testfs2"
+fs_size: "32M"
+fs_type: "jfs2"
+fs_size_new: "1G"
+fs_perm_new: "ro"
+rm_mnt_pt: true
+serv_nfs: "/tmp/servnfs"
+client_nfs: "/tmp/clientnfs"
+amount_nfs_new: true

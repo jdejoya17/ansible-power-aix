@@ -1,0 +1,82 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: fetch LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC01_S01: create filesystem - with existing LV"
+  filesystem:
+    state: present
+    device: "{{ lv_name }}"
+    filesystem: "{{ fs_mnt }}"
+    fs_type: "{{ fs_type }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Creation of filesystem '{{ fs_mnt }}' succeeded" ) != -1
+    - results.cmd.find( "crfs" ) != -1
+  when:
+  - results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes needed" ) != -1
+  when:
+  - results is not changed
+
+- name: "TC01_S01: create filesystem - automatically create LV"
+  filesystem:
+    state: present
+    vg: "{{ vg_name }}"
+    filesystem: "{{ fs_mnt_vg }}"
+    fs_type: "{{ fs_type }}"
+    attributes: size="{{ fs_size }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Creation of filesystem '{{ fs_mnt_vg }}' succeeded" ) != -1
+    - results.cmd.find( "crfs" ) != -1
+  when:
+  - results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes needed" ) != -1
+  when:
+  - results is not changed

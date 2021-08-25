@@ -1,0 +1,118 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: fetch LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+- debug: var=facts
+
+- name: "SETUP: check server/backing filesystem is set up"
+  shell: ls /tmp/tc01_02_create_nfs_setup || echo "need setup"
+  register: check_setup
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: "{{ force }}"
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: create a logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: create filesystem backing filesystem"
+  filesystem:
+    state: present
+    device: "{{ lv_name }}"
+    filesystem: "{{ serv_nfs }}"
+    fs_type: "{{ fs_type }}"
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ lv_name }} is not defined
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: mount server/backing filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ serv_nfs }}"
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: copy test /etc/exports to test machine"
+  template:
+    src: "exports"
+    dest: "/etc/"
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: stop all NFS daemons/services"
+  shell: /etc/nfs.clean
+  register: results
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+- debug: var=results
+
+- name: "SETUP: restart NFS daemons/services"
+  shell: /etc/rc.nfs
+  register: results
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+- debug: var=results
+
+- name: "SETUP: run exportfs"
+  shell: /usr/sbin/exportfs
+  register: results
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+- debug: var=results
+
+- name: "SETUP: make sure not to setup again"
+  shell: touch /tmp/tc01_02_create_nfs_setup
+  when:
+  - check_setup.stdout.find( "need setup" ) != -1
+
+- name: "SETUP: fetch hostname"
+  shell: hostname
+  register: victim_hostname
+- debug: var=victim_hostname.stdout
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC01_S02: create NFS"
+  filesystem:
+    state: present
+    device: "{{ serv_nfs }}"
+    filesystem: "{{ client_nfs }}"
+    nfs_server: "{{ victim_hostname.stdout }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S02_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Creation of NFS filesystem '{{ client_nfs }}' succeeded" ) != -1
+    - results.cmd.find( "mknfsmnt" ) != -1
+  when:
+  - results is changed
+
+- name: "TC01_S02_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "No changes needed" ) != -1
+  when:
+  - results is not changed
