@@ -3,6 +3,8 @@
 # * Create user
 # * Create user - idempotency check
 # * modify account_locked attribute
+# * modify sccount with attributes are are non string and string values, then
+#   verify the attributes were changed on the system.
 # * modify account_locked back to default value
 # * Cleanup task - remove user
 # To run the playbook:
@@ -11,7 +13,7 @@
 
 ---
 - name: chuser demo playbook
-  hosts: target_system
+  hosts: "{{ target_system }}"
   gather_facts: no
   remote_user: root
   vars:
@@ -56,6 +58,7 @@
     register: output
   - debug: var=output
 
+
   - name: modify account_locked back to default
     user:
       name: "{{ name_v }}"
@@ -63,6 +66,79 @@
       attributes: "{{ attributes_v2 }}"
     register: output
   - debug: var=output
+
+# Change attributes for the user, pass them as strings, not strings, caps, always to
+# test the module capability to convert the values to strings.
+# Also verify with shell commands that the values were changed.
+  - name: Change multiple attribute and do not pass them as strings
+    ibm.power_aix.user:
+      name: "{{ name_v }}"
+      attributes:
+        fsize: -1
+        su: FALSE
+        account_locked: true
+        login: false
+        rlogin: false
+        su: false
+        admin: true
+        daemon: false
+        tpath: always
+        data: 123456789
+        rss: -1
+        stack: -1
+        nofiles: -1
+      state: modify
+    register: result
+  - debug: var=result
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep login | awk ' { print $1 }' | grep '^login=' | awk -F '=' ' { print $2 }'"
+    register: vlogin
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep su | awk ' { print $1 }' | grep '^su=' | awk -F '=' ' { print $2 }'"
+    register: vsu
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep account_locked | awk ' { print $1 }' | grep '^account_locked=' | awk -F '=' ' { print $2 }'"
+    register: vaccount_locked
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep rlogin | awk ' { print $1 }' | grep '^rlogin=' | awk -F '=' ' { print $2 }'"
+    register: vrlogin
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep admin | awk ' { print $1 }' | grep '^admin=' | awk -F '=' ' { print $2 }'"
+    register: vadmin
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep tpath | awk ' { print $1 }' | grep '^tpath=' | awk -F '=' ' { print $2 }'"
+    register: vtpath
+  - debug: var=result
+
+  - name: Verify the user info.
+    shell:
+      cmd: "lsuser -f {{ name_v  }} | grep data | awk ' { print $1 }' | grep '^data=' | awk -F '=' ' { print $2 }'"
+    register: vdata
+
+  - assert:
+      that:
+        - "{{ vlogin.stdout }} == false"
+        - "{{ vaccount_locked.stdout }} == true"
+        - "{{ vrlogin.stdout }} == false"
+        - "{{ vadmin.stdout }} == true"
+        - "'{{ vtpath.stdout }}' == 'always'"
+        - "{{ vsu.stdout }} == false"
+        - "'{{ vdata.stdout }}' == '123456789'"
+      fail_msg: "Test: User values were not changed."
+
+
 
   - name: remove user (cleanup task)
     user:

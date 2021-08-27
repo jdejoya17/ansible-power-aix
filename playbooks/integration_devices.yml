@@ -12,8 +12,8 @@
 # - It will change the attributes of the device.
 # - It will verify that changes or not changes are correctly described.
 # - It will remove (delete) the device.
-# Command to run:
-# ansible-playbook -i inventory.yml integration_devices.yml  -e "taret_adapter=<host>" -vvv
+# To run the playbook:
+# ansible-playbook -i inventory.yml integration_devices.yml  -e "target_system=<host in inventory>" -vvv
 # Special test:
 # If the configuration contains a fibre channel adapter ( fcs0 )
 # The uncommented tests can test recursive defining or removing devices.
@@ -21,7 +21,7 @@
 #
 
 - name: "Test devices module"
-  hosts: "{{ target_adapter }}"
+  hosts: "{{ target_system }}"
   remote_user: root
   gather_facts: no
   vars:

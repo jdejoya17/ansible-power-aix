@@ -8,8 +8,7 @@
 # * Add a group and at the same time, add a user to it.
 # * Add attributes and test idempotency.
 # To run the playbook:
-# ansible-playbook -i# To run the playbook:
-# ansible-playbook -i inventory.yml demo_group.yml  -e "target_system=<hostname in inventory>" -vvv
+# ansible-playbook -i inventory.yml integration_group.yml  -e "target_system=<hostname in inventory>" -vvv
 #
 - name: "Group on AIX playbook"
   hosts: "{{ target_system }}"
