@@ -1,0 +1,16 @@
+---
+name_v: tester
+change_passwd_on_login_v: False
+password_v1: "passw0rd"
+password_v2: "newpassw0rd"
+hashed_password_v1: "{ssha256}06$wZ83uReQy62tjLJN$EH.v.tsuysbdbi.IzLsemX9Rrl8UCrGLb4a.Uo6t.El"
+hashed_password_v2: "{ssha256}06$VZX2popF0PwCc4XJ$9DdRpR6u4y/ovq./kgYMmICcXnC3qx1yyv5sMzrk.cG"
+attributes_v1:
+  account_locked: 'true'
+attributes_v2:
+  login: false
+  rlogin: false
+attributes_v3:
+  login: true
+  rlogin: true
+  account_locked: 'false'

@@ -1,0 +1,66 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ name_v }}"
+    change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+    password: "{{ password_v1 }}"
+
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc03_s01_modify_user_many_attr || echo "first run"
+  register: run
+  changed_when: false
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC03_S01: modify user attribute"
+  user:
+    state: modify
+    name: "{{ name_v }}"
+    attributes: "{{ attributes_v2 }}"
+  register: results
+- debug: var=results
+
+- name: "SETUP: verify login attribute"
+  shell: >
+    lsuser -f {{ name_v  }} | grep login | awk ' 
+    { print $1 }' | grep '^login=' | awk -F '=' ' 
+    { print $2 }'
+  register: vlogin
+  changed_when: false
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: verify rlogin attribute"
+  shell: >
+    lsuser -f {{ name_v  }} | grep rlogin | awk ' 
+    { print $1 }' | grep '^rlogin=' | awk -F '=' ' 
+    { print $2 }'
+  register: vrlogin
+  changed_when: false
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "set SUCCESSFULLY" ) != -1
+  when:
+  - results is changed
+
+- name: "SETUP: signify first run is complete"
+  shell: touch /tmp/tc03_s01_modify_user_many_attr
+  when: run.stdout.find( "first run" ) != -1
+  
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "no changes needed" ) != -1
+  ignore_errors: true
+  when: run.stdout.find( "tc03_s01" ) != -1
+
+- name: "TEARDOWN: delete temporary files"
+  shell: rm /tmp/tc03_s01_modify_user_many_attr
+  when: run.stdout.find( "tc03_s01" ) != -1

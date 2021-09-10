@@ -1,0 +1,48 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ name_v }}"
+    change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+    password: "{{ password_v1 }}"
+
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc02_s01_modify_user_attr || echo "first run"
+  register: run
+  changed_when: false
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC02_S01: modify user attribute"
+  user:
+    state: modify
+    name: "{{ name_v }}"
+    attributes: "{{ attributes_v1 }}"
+  register: results
+- debug: var=results
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "set SUCCESSFULLY" ) != -1
+  when:
+  - results is changed
+
+- name: "SETUP: signify first run is complete"
+  shell: touch /tmp/tc02_s01_modify_user_attr
+  when: run.stdout.find( "first run" ) != -1
+  
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "no changes needed" ) != -1
+  ignore_errors: true
+  when: run.stdout.find( "tc02_s01" ) != -1
+
+- name: "TEARDOWN: delete temporary files"
+  shell: rm /tmp/tc02_s01_modify_user_attr
+  when: run.stdout.find( "tc02_s01" ) != -1

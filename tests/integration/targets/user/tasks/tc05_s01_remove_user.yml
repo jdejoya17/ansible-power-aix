@@ -1,0 +1,50 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc05_s01_remove_user || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ name_v }}"
+    change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+    password: "{{ password_v1 }}"
+  when: 
+    - run.stdout.find( "first run" ) != -1
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC05_S01: remove user"
+  user:
+    state: absent
+    name: "{{ name_v }}"
+    change_passwd_on_login: "{{ change_passwd_on_login_v }}"
+  register: results
+- debug: var=results
+
+- name: "TC05_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "REMOVED SUCCESSFULLY" ) != -1
+  when:
+  - results is changed
+
+- name: "SETUP: signify first run is complete"
+  shell: touch /tmp/tc05_s01_remove_user
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "TC05_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+    - results.msg.find( "NOT FOUND" ) != -1
+  when:
+  - results is not changed
+
+- name: "TEARDOWN: delete temporary files"
+  shell: rm /tmp/tc05_s01_remove_user
+  when: run.stdout.find( "tc05_s01" ) != -1

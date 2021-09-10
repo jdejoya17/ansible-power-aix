@@ -1,0 +1,56 @@
+---
+# NOTE: Currently fails, because of hash password 
+# issue during user creation
+######################################################
+# TC01_S01: creating a user
+######################################################
+- include: "tc01_s01_create_user.yml"
+- include: "tc01_s01_create_user.yml"
+
+# TODO: second assert fails because action is not
+# idempotent
+######################################################
+# TC02_S01: modify user attribute
+######################################################
+- include: "tc02_s01_modify_user_attr.yml"
+- include: "tc02_s01_modify_user_attr.yml"
+
+# TODO: second assert fails because action is not
+# idempotent
+######################################################
+# TC03_S01: modify multiple user attribute
+######################################################
+- include: "tc03_s01_modify_user_many_attr.yml"
+- include: "tc03_s01_modify_user_many_attr.yml"
+
+# NOTE: Intended to fail currently
+######################################################
+# TC04_S01: change user password
+######################################################
+- include: "tc04_s01_change_user_password.yml"
+- include: "tc04_s01_change_user_password.yml"
+
+######################################################
+# TC05_S01: remove user
+######################################################
+- include: "tc05_s01_remove_user.yml"
+- include: "tc05_s01_remove_user.yml"
+
+######################################################
+# TC01_S02: create user with hashed password
+######################################################
+- include: "tc01_s02_create_user_password_hashed.yml"
+- include: "tc01_s02_create_user_password_hashed.yml"
+
+######################################################
+# TC02_S02: modify user password, input hash password
+######################################################
+- include: "tc02_s02_change_user_password_hashed.yml"
+- include: "tc02_s02_change_user_password_hashed.yml"
+
+# TODO: passing hashed password using password_hash
+# filter, must pass
+######################################################
+# TC03_S02: modify user password, input hash password
+# with the use of password_hash filter
+######################################################
