@@ -10,4 +10,5 @@ nfs_serv: /tmp/servnfs
 nfs_client: /tmp/clientnfs
 pv_list: hdisk1
 mnt_grp: local
-
+rm_mnt_pt: true
+delete_lvs: true

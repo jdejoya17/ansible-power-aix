@@ -4,48 +4,66 @@
 ######################################################
 - include: "tc01_s01_mount.yml"
 - include: "tc01_s01_mount.yml"
+#
+######################################################
+# TC_02: Unmount a Filesystem
+######################################################
+- include: "tc02_s01_unmount.yml"
+- include: "tc02_s01_unmount.yml"
+#
+#####################################################
+# TC_03: Mount all same type
+#####################################################
+- include: "tc03_s01_mount_group.yml"
+- include: "tc03_s01_mount_group.yml"
+#
+######################################################
+# TC_04: Umount all from mount group
+######################################################
+- include: "tc04_s01_unmount_mount_group.yml"
+- include: "tc04_s01_unmount_mount_group.yml"
 
 ######################################################
-# TC_02: Mounting a NFS
+# TC_01: Mounting a NFS
 ######################################################
-- include: "tc02_s01_mount_nfs.yml"
-- include: "tc02_s01_mount_nfs.yml"
+- include: "tc01_s02_mount_nfs.yml"
+- include: "tc01_s02_mount_nfs.yml"
 
 ######################################################
-# TC_03: Unmount a Filesystem
+# TC_02: Unmount a NFS
 ######################################################
-- include: "tc03_s01_unmount.yml"
-- include: "tc03_s01_unmount.yml"
-
-######################################################
-# TC_04: Unmount a NFS
-######################################################
-- include: "tc04_s01_unmount_nfs.yml"
-- include: "tc04_s01_unmount_nfs.yml"
+- include: "tc02_s02_unmount_nfs.yml"
+- include: "tc02_s02_unmount_nfs.yml"
 
 #####################################################
-# TC_05: Mount all same type
+# TC_03: Umount all remote filesystems
 #####################################################
-- include: "tc05_s01_mount_group.yml"
-- include: "tc05_s01_mount_group.yml"
+- include: "tc03_s02_unmount_remote_all.yml"
+- include: "tc03_s02_unmount_remote_all.yml"
 
 #####################################################
-# TC_06: Umount all remote filesystems
+# TC_04: Umount all remote filesytems from a node
 #####################################################
-- include: "tc06_s01_unmount_remote_all.yml"
-- include: "tc06_s01_unmount_remote_all.yml"
-
-#####################################################
-# TC_07: Umount all remote filesytems from a node
-#####################################################
-- include: "tc07_s01_unmount_remote_node.yml"
-- include: "tc07_s01_unmount_remote_node.yml"
+- include: "tc04_s02_unmount_remote_node.yml"
+- include: "tc04_s02_unmount_remote_node.yml"
 
 ######################################################
-# TC_08: Umount all from mount group
+# TC_02: Unmount a NFS - no entry in /etc/filesystems
 ######################################################
-- include: "tc08_s01_unmount_mount_group.yml"
-- include: "tc08_s01_unmount_mount_group.yml"
+- include: "tc01_s03_unmount_nfs_no_entry.yml"
+- include: "tc01_s03_unmount_nfs_no_entry.yml"
+
+#####################################################
+# TC_02: Umount all remote filesystems
+#####################################################
+- include: "tc02_s03_unmount_remote_all_no_entry.yml"
+- include: "tc02_s03_unmount_remote_all_no_entry.yml"
+
+#####################################################
+# TC_03: Umount all remote filesytems from a node
+#####################################################
+- include: "tc03_s03_unmount_remote_node_no_entry.yml"
+- include: "tc03_s03_unmount_remote_node_no_entry.yml"
 
 ######################################################
 # TC_xx: List mounted filesystems
@@ -54,10 +72,7 @@
   mount:
     state: show
   register: results
-
-- name: "TEST_RESULT: Show standard out: list of mounted filesystems"
-  debug:
-    var: results
+- debug: var=results
 
 - name: "TEST_ASSERT: assert message"
   assert:

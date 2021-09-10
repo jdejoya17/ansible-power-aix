@@ -1,0 +1,13 @@
+---
+- name: "Display Python Interpreter Used"
+  setup:
+    gather_subset:
+    - '!all'
+    - '!any'
+    - facter
+    # filter:
+    # - 'ansible_python_version'
+    # - 'ansible_python'
+  register: output
+- debug: var=output.ansible_facts.ansible_python
+- debug: var=output.ansible_facts.ansible_python_version

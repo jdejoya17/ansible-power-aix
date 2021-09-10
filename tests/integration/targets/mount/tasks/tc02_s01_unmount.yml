@@ -7,10 +7,7 @@
     name: all
     component: all
   register: facts
-
-- name: "SETUP: Show LVM facts"
-  debug:
-    var: facts
+- debug: var=facts
 
 - name: "SETUP: create a volume group"
   lvg:
@@ -44,7 +41,7 @@
   - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
 
 - name: "SETUP: Check for first run"
-  shell: ls /tmp/first_run_done || echo "mount NFS"
+  shell: ls /tmp/tc02_s01_unmount || echo "mount NFS"
   register: nextrun
 
 - name: "SETUP: mount filesystem"
@@ -56,17 +53,14 @@
 #######################################
 # Actual Task To Be Tested
 #######################################
-- name: "TEST1: umount filesystem"
+- name: "TC02_S01: umount filesystem"
   mount:
     state: umount
     mount_dir: "{{ fs_mnt }}"
   register: results
+- debug: var=results
 
-- name: "TEST_RESULT: show results"
-  debug:
-    var: results
-
-- name: "TEST_ASSERT_RUN1: expected results - first run"
+- name: "TC02_S01_ASSERT1: expected results - first run"
   assert:
     that:
     - results.msg.find( "Unmount successful" ) != -1
@@ -75,11 +69,11 @@
   - results is changed
 
 - name: "SETUP: make sure to not mount NFS again on second run"
-  shell: touch /tmp/first_run_done
+  shell: touch /tmp/tc02_s01_unmount
   when:
   - results is changed
 
-- name: "TEST_ASSERT_RUN2: expected results -second run"
+- name: "TC02_S01_ASSERT2: expected results -second run"
   assert:
     that:
     - results.msg.find( "not mounted" ) != -1
@@ -88,7 +82,7 @@
   - results is not changed
 
 - name: "SETUP: make sure to reset env variables"
-  shell: rm /tmp/first_run_done || echo "nothing to reset"
+  shell: rm /tmp/tc02_s01_unmount || echo "nothing to reset"
   when:
   - results is not changed
 

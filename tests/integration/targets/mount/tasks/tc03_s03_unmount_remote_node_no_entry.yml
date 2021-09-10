@@ -1,0 +1,161 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: Gather LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: facts
+
+- name: "SETUP: Show LVM facts"
+  debug:
+    var: facts
+
+- name: "SETUP: create a volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name }}"
+    pvs: "{{ pv_list }}"
+    force: true
+  when:
+  - facts.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+- name: "SETUP: create a logical volume for the server filesystem"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ nfs_lv_name }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ nfs_lv_name }} is not defined
+
+- name: "SETUP: create server filesystem"
+  filesystem:
+    state: present
+    filesystem: "{{ nfs_serv }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ nfs_lv_name }}"
+    mount_group: "{{ mnt_grp }}"
+  register: results
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ nfs_lv_name }}.mount_point != "{{ nfs_serv }}"
+
+- name: "SETUP: mount server filesystem"
+  mount:
+    state: mount
+    mount_dir: "{{ nfs_serv }}"
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ nfs_lv_name }}.lv_state == "closed/syncd" 
+
+- name: "SETUP: check entries in /etc/exports"
+  shell: cat /etc/exports || touch /etc/exports
+  register: results
+
+- name: "SETUP: copy test /etc/exports to test machine"
+  template:
+    src: "exports"
+    dest: "/etc/"
+    mode: 0644
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
+- debug: var=results
+
+# stop all nfs daemons/services
+- name: "SETUP: stop all NFS daemons/services"
+  shell: /etc/nfs.clean
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
+
+- name: "SETUP: restart NFS daemons/services"
+  shell: /etc/rc.nfs
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
+
+- name: "SETUP: exportfs"
+  shell: exportfs
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
+
+- name: "SETUP: fetch hostname"
+  shell: hostname
+  register: results
+
+- name: "SETUP: Check for first run"
+  shell: ls /tmp/tc03_s03_unmount_remote_node || echo "mount NFS"
+  register: nextrun
+
+- name: "SETUP: Mount NFS"
+  mount:
+   state: mount
+   node: "{{ results.stdout }}"
+   mount_dir: "{{ nfs_serv }}"
+   mount_over_dir: "{{ nfs_client }}"
+  register: mount_results
+  when: nextrun.stdout.find( "mount NFS" ) != -1
+- debug: var=mount_results
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC03_S03: umount all remote filesystems in a specified node"
+  mount:
+    state: umount
+    node: "{{ results.stdout }}"
+  register: results
+- debug: var=results
+
+- name: "TC03_S03_ASSERT1: expected results - first run"
+  assert:
+    that:
+    - results.msg.find( "Unmount successful" ) != -1
+  when:
+  - results is changed
+
+- name: "SETUP: make sure to not mount NFS again on second run"
+  shell: touch /tmp/tc03_s03_unmount_remote_node
+  when:
+  - results is changed
+
+- name: "TC03_S03_ASSERT2: expected results -second run"
+  assert:
+    that:
+    - results.msg.find( "There are no remote filesystems to unmount" ) != -1
+  when:
+  - results is not changed
+
+- name: "SETUP: make sure to reset env variables"
+  shell: rm /tmp/tc03_s03_unmount_remote_node || echo "nothing to reset"
+  when:
+  - results is not changed
+
+#######################################
+# Teardown Tasks
+#######################################
+# - name: "TEARDOWN: delete NFS entry in /etc/filesystems"
+#   filesystem:
+#     state: absent
+#     device: "{{ nfs_serv }}"
+#     filesystem: "{{ nfs_client }}"
+#     nfs_server: "{{ results.stdout }}"
+#     rm_mount_point: "{{ rm_mnt_pt }}"
+#   when:
+#   - results is not changed
+
+- name: "TEARDOWN: unmount backing filesystem"
+  mount:
+    state: umount
+    mount_dir: "{{ nfs_serv }}"
+  when:
+  - results is not changed
+
+- name: "TEARDOWN: delete /etc/exports"
+  shell: rm /etc/exports
+  when:
+  - results is not changed
+
+- name: "TEARDOWN: delete volume group and all logical volumes"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name }}"
+    delete_lvs: "{{ delete_lvs }}"
+  when:
+  - results is not changed

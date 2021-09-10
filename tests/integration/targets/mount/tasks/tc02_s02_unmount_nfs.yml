@@ -54,83 +54,77 @@
   shell: cat /etc/exports || touch /etc/exports
   register: results
 
-# Setup for NFS mount
-- name: "SETUP: add backing filesystem to /etc/exports"
-  shell: echo "{{ nfs_serv }} -anon=0" >> /etc/exports
-  register: results
+- name: "SETUP: copy test /etc/exports to test machine"
+  template:
+    src: "exports"
+    dest: "/etc/"
+    mode: 0644
   when: results.stdout.find( "{{ nfs_serv }}" ) == -1
+- debug: var=results
 
 # stop all nfs daemons/services
 - name: "SETUP: stop all NFS daemons/services"
   shell: /etc/nfs.clean
-  register: results
-  when: 
-  - results is not skipped
-  - results.rc == 0
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
 
 - name: "SETUP: restart NFS daemons/services"
   shell: /etc/rc.nfs
-  register: results
-  when:
-  - results is not skipped
-  - results.rc == 0
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
 
 - name: "SETUP: exportfs"
   shell: exportfs
-  register: results
-  when:
-  - results is not skipped
-  - results.rc == 0
+  when: results.stdout.find( "{{ nfs_serv }}" ) == -1
 
 - name: "SETUP: fetch hostname"
   shell: hostname
   register: results
 
 - name: "SETUP: Check for first run"
-  shell: ls /tmp/first_run_done || echo "mount NFS"
+  shell: ls /tmp/tc02_s02_unmount_nfs || echo "mount NFS"
   register: nextrun
 
 - name: "SETUP: Mount NFS"
-  mount:
-   state: mount
-   node: "{{ results.stdout }}"
-   mount_dir: "{{ nfs_serv }}"
-   mount_over_dir: "{{ nfs_client }}"
+  filesystem:
+    state: present
+    device: "{{ nfs_serv }}"
+    filesystem: "{{ nfs_client }}"
+    nfs_server: "{{ results.stdout }}"
+  register: mount_results
   when: nextrun.stdout.find( "mount NFS" ) != -1
+- debug: var=mount_results
 
 #######################################
 # Actual Task To Be Tested
 #######################################
-- name: "TEST1: umount all remote filesystems"
+- name: "TC02_S02: umount NFS"
   mount:
     state: umount
-    mount_all: remote
+    mount_dir: "{{ nfs_client }}"
   register: results
+- debug: var=results
 
-- name: "TEST_RESULT: show results"
-  debug:
-    var: results
-
-- name: "TEST_ASSERT_RUN1: expected results - first run"
+- name: "TC02_S02_ASSERT1: expected results - first run"
   assert:
     that:
     - results.msg.find( "Unmount successful" ) != -1
+    - results.cmd.find( "{{ nfs_client }}" ) != -1
   when:
   - results is changed
 
 - name: "SETUP: make sure to not mount NFS again on second run"
-  shell: touch /tmp/first_run_done
+  shell: touch /tmp/tc02_s02_unmount_nfs
   when:
   - results is changed
 
-- name: "TEST_ASSERT_RUN2: expected results -second run"
+- name: "TC02_S02_ASSERT2: expected results -second run"
   assert:
     that:
-    - results.msg.find( "There are no remote filesystems to unmount" ) != -1
+    - results.msg.find( "not mounted" ) != -1
+    - results.msg.find( "{{ nfs_client }}" ) != -1
   when:
   - results is not changed
 
 - name: "SETUP: make sure to reset env variables"
-  shell: rm /tmp/first_run_done || echo "nothing to reset"
+  shell: rm /tmp/tc02_s02_unmount_nfs || echo "nothing to reset"
   when:
   - results is not changed

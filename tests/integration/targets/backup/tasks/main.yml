@@ -27,30 +27,30 @@
 - include: "tc04_s01_restvg.yml"
 - include: "tc04_s01_restvg.yml"
 
-#######################################################
-# mksysb integration tests
-#######################################################
-#######################################################
-# TC_01: Create rootvg Backup
-#######################################################
-- include: "tc01_s02_mksysb.yml"
-- include: "tc01_s02_mksysb.yml"
+########################################################
+## mksysb integration tests
+########################################################
+########################################################
+## TC_01: Create rootvg Backup
+########################################################
+#- include: "tc01_s02_mksysb.yml"
+#- include: "tc01_s02_mksysb.yml"
 
-#######################################################
-# TC_02: Create rootvg Backup - force
-# This will overwrite any existing backup file with the
-# same name, thus results will always be 'changed'
-#######################################################
-- include: "tc02_s02_mksysb_force.yml"
-# - include: "tc02_s02_mksysb_force.yml"
-#
-#######################################################
-# TC_03: View rootvg Backup
-#######################################################
-- include: "tc03_s02_mksysb_view.yml"
-#
-#######################################################
-# TC_04: Create Alternate rootvg from backup
-#######################################################
-- include: "tc04_s02_alt_disk_mksysb.yml"
-- include: "tc04_s02_alt_disk_mksysb.yml"
+########################################################
+## TC_02: Create rootvg Backup - force
+## This will overwrite any existing backup file with the
+## same name, thus results will always be 'changed'
+########################################################
+#- include: "tc02_s02_mksysb_force.yml"
+## - include: "tc02_s02_mksysb_force.yml"
+##
+########################################################
+## TC_03: View rootvg Backup
+########################################################
+#- include: "tc03_s02_mksysb_view.yml"
+##
+########################################################
+## TC_04: Create Alternate rootvg from backup
+########################################################
+#- include: "tc04_s02_alt_disk_mksysb.yml"
+#- include: "tc04_s02_alt_disk_mksysb.yml"

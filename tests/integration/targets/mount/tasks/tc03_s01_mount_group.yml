@@ -42,28 +42,46 @@
   when:
   - results is changed or facts.ansible_facts.LVM.LVs.{{ lv_name }}.mount_point != "{{ fs_mnt }}"
 
+- name: "SETUP: create a logical volume on for a second filesystem"
+  lvol:
+    state: present
+    vg: "{{ vg_name }}"
+    lv: "{{ nfs_lv_name }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+  register: results
+  when:
+  - facts.ansible_facts.LVM.LVs.{{ nfs_lv_name }} is not defined
+
+- name: "SETUP: create a second filesystem on the same mount group"
+  filesystem:
+    state: present
+    filesystem: "{{ nfs_serv }}"
+    fs_type: "{{ fs_type }}"
+    device: "{{ nfs_lv_name }}"
+    mount_group: "{{ mnt_grp }}"
+  when:
+  - results is changed or facts.ansible_facts.LVM.LVs.{{ nfs_lv_name }}.mount_point != "{{ nfs_serv }}"
+
 #######################################
 # Actual Task To Be Tested
 #######################################
-- name: "TEST1: mount filesystem in a specified mount group"
+- name: "TC03_S01: mount filesystem in a specified mount group"
   mount:
     state: mount
     fs_type: "{{ mnt_grp }}"
   register: results
+- debug: var=results
 
-- name: "TEST_RESULT: show results"
-  debug:
-    var: results
-
-- name: "TEST_ASSERT_RUN1: expected results - first run"
+- name: "TC03_S01_ASSERT1: expected results - first run"
   assert:
     that:
     - results.msg.find( "Mount successful - '{{ fs_mnt }}'" ) != -1
-    - results.msg.find( "'{{ nfs_serv }}' already mounted" ) != -1
+    - results.msg.find( "Mount successful - '{{ nfs_serv }}'" ) != -1
   when:
   - results is changed
 
-- name: "TEST_ASSERT_RUN2: expected results -second run"
+- name: "TC03_S01_ASSERT2: expected results -second run"
   assert:
     that:
     - results.msg.find( "'{{ fs_mnt }}' already mounted" ) != -1
