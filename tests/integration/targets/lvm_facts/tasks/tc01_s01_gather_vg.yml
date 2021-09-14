@@ -1,0 +1,70 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: check initial VG facts"
+  lvm_facts:
+    name: all
+    component: vg
+- debug: var=ansible_facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list1 }}"
+    force: "{{ force }}"
+  when: ansible_facts.LVM.VGs.testvg1 is not defined
+
+- name: "SETUP: varyonvg VG"
+  lvg:
+    state: varyon
+    vg_name: "{{ vg_name2 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg2 is defined
+    - ansible_facts.LVM.VGs.testvg2.vg_state != "active"
+
+- name: "SETUP: create volume - varyoff later"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name2 }}"
+    pvs: "{{ pv_list2 }}"
+    force: "{{ force }}"
+  when: ansible_facts.LVM.VGs.testvg2 is not defined
+
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC01_S01: gather volume group facts"
+  lvm_facts:
+    name: all
+    component: vg
+- debug: var=ansible_facts
+
+- name: "TC01_S01_ASSERT: expected results"
+  assert:
+    that:
+      - ansible_facts.LVM.VGs.rootvg.vg_state == "active"
+      - ansible_facts.LVM.VGs.testvg1.vg_state == "active"
+      - ansible_facts.LVM.VGs.testvg2.vg_state == "active"
+
+- name: "SETUP: varyoffvg VG"
+  lvg:
+    state: varyoff
+    vg_name: "{{ vg_name2 }}"
+  when: ansible_facts.LVM.VGs.testvg2.vg_state != "deactivated"
+
+- name: "TC01_S01: gather volume group facts - update existing LVM facts"
+  lvm_facts:
+    name: all
+    component: vg
+    lvm: "{{ ansible_facts.LVM }}"
+- debug: var=ansible_facts
+
+- name: "TC01_S01_ASSERT: expected results on updated LVM facts"
+  assert:
+    that:
+      - ansible_facts.LVM.VGs.rootvg.vg_state == "active"
+      - ansible_facts.LVM.VGs.testvg1.vg_state == "active"
+      - ansible_facts.LVM.VGs.testvg2.vg_state == "deactivated"

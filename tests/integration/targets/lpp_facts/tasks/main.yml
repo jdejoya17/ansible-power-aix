@@ -1,0 +1,39 @@
+---
+- name: "TC01_S01: fetch lpp facts"
+  ibm.power_aix.lpp_facts:
+- debug: var=ansible_facts
+
+- name: "check wether a fileset called 'openssh.base.client' is installed"
+  debug: msg="Fileset 'openssh.base.client' is installed"
+  when: "'openssh.base.client' in ansible_facts.filesets"
+
+- name: "check whether a fileset called 'test.base.xyz' is installed"
+  debug: msg="Fileset 'test.base.xyz' is installed"
+  when: "'test.base.xyz' in ansible_facts.filesets"
+
+- name: "TC02_S01: gather the openssh.base.client fileset facts"
+  ibm.power_aix.lpp_facts:
+    filesets: openssh.base.client
+- debug: var=ansible_facts.filesets
+
+- name: "TC03_S01: gather non-existent fileset facts"
+  ibm.power_aix.lpp_facts:
+    filesets: test.base.xyz
+- debug: var=ansible_facts.filesets
+
+- name: "TC04_S01: populate fileset facts with the installation state 
+        for the most recent level of installed filesets for all of the 
+        bos.rte filesets"
+  ibm.power_aix.lpp_facts:
+    filesets: bos.rte.*
+- debug: var=ansible_facts.filesets
+
+- name: Print the fileset facts
+  debug:
+    var: ansible_facts.filesets
+
+- name: "TC05_S01: populate fileset facts with the installation state 
+        for all the filesets contained in the Server bundle"
+  ibm.power_aix.lpp_facts:
+    bundle: Server
+- debug: var=ansible_facts.filesets

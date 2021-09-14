@@ -1,0 +1,11 @@
+---
+vg_name1: testvg1
+pv_list1: hdisk1 hdisk2
+vg_name2: testvg2
+pv_list2: hdisk3
+force: true
+lv_name: testlv
+lv_type: jfs2
+lv_size: 10
+new_lv_size: 15
+delete_lvs: true

@@ -1,0 +1,64 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: check initial VG facts"
+  lvm_facts:
+    name: all
+    component: all
+- debug: var=ansible_facts
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list1 }}"
+    force: "{{ force }}"
+  when: ansible_facts.LVM.VGs.testvg1 is not defined
+
+- name: "SETUP: delete logical volume if it exists"
+  lvol:
+    state: absent
+    lv: "{{ lv_name }}"
+
+- name: "SETUP: create logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name1 }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC02_S01: gather volume group facts"
+  lvm_facts:
+    name: all
+    component: lv
+- debug: var=ansible_facts
+
+- name: "TC02_S01_ASSERT: expected results"
+  assert:
+    that:
+      - ansible_facts.LVM.LVs.testlv.LPs == "{{ lv_size }}"
+      - ansible_facts.LVM.LVs.testlv.PPs == "{{ lv_size }}"
+
+- name: "SETUP: extend LV"
+  lvol:
+    state: present
+    vg: "{{ vg_name1 }}"
+    lv: "{{ lv_name }}"
+    size: "{{ new_lv_size }}"
+
+- name: "TC02_S01: gather volume group facts - update existing LVM facts"
+  lvm_facts:
+    name: all
+    component: lv
+- debug: var=ansible_facts
+
+- name: "TC02_S01_ASSERT: expected results on updated LVM facts"
+  assert:
+    that:
+      - ansible_facts.LVM.LVs.testlv.LPs == "{{ new_lv_size }}"
+      - ansible_facts.LVM.LVs.testlv.PPs == "{{ new_lv_size }}"

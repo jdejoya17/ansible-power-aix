@@ -1,0 +1,117 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: check initial VG facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: results
+- debug: var=results
+
+- name: "SETUP: varyon deactivated volume group"
+  lvg:
+    state: varyon
+    vg_name: "{{ vg_name1 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg1 is defined
+    - ansible_facts.LVM.VGs.testvg1.vg_state == "deactivated"
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list1 }}"
+    force: "{{ force }}"
+  when: ansible_facts.LVM.VGs.testvg1 is not defined
+
+- name: "SETUP: varyon deactivated volume group"
+  lvg:
+    state: varyon
+    vg_name: "{{ vg_name2 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg2 is defined
+    - ansible_facts.LVM.VGs.testvg2.vg_state == "deactivated"
+
+- name: "SETUP: delete second volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name2 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg2 is defined
+
+- name: "SETUP: reduce third PV on VG"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list2 }}"
+
+- name: "SETUP: delete logical volume if it exists"
+  lvol:
+    state: absent
+    lv: "{{ lv_name }}"
+
+- name: "SETUP: create logical volume"
+  lvol:
+    state: present
+    vg: "{{ vg_name1 }}"
+    lv: "{{ lv_name }}"
+    lv_type: "{{ lv_type }}"
+    size: "{{ lv_size }}"
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC04_S01: gather all LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+- debug: var=ansible_facts
+
+- name: "TC04_S01_ASSERT: expected results"
+  assert:
+    that:
+      - ansible_facts.LVM.VGs.testvg1.num_pvs == "2"
+      - ansible_facts.LVM.PVs.hdisk1.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk2.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.LVs.testlv.LPs == "{{ lv_size }}"
+      - ansible_facts.LVM.LVs.testlv.PPs == "{{ lv_size }}"
+
+- name: "SETUP: extend volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list2 }}"
+
+- name: "SETUP: extend LV"
+  lvol:
+    state: present
+    vg: "{{ vg_name1 }}"
+    lv: "{{ lv_name }}"
+    size: "{{ new_lv_size }}"
+
+- name: "TC04_S01: gather all LVM facts - update existing LVM facts"
+  lvm_facts:
+    name: all
+    component: all
+    lvm: "{{ ansible_facts.LVM }}"
+- debug: var=ansible_facts
+
+- name: "TC04_S01_ASSERT: expected results on updated LVM facts"
+  assert:
+    that:
+      - ansible_facts.LVM.VGs.testvg1.num_pvs == "3"
+      - ansible_facts.LVM.PVs.hdisk1.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk2.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk3.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.LVs.testlv.LPs == "{{ new_lv_size }}"
+      - ansible_facts.LVM.LVs.testlv.PPs == "{{ new_lv_size }}"
+
+######################################################
+# Teardown Tasks
+######################################################
+- name: "TEARDOWN: delete volume group and LVs"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name1 }}"
+    delete_lvs: "{{ delete_lvs }}"

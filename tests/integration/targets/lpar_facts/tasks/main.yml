@@ -1,0 +1,4 @@
+---
+- name: "TC01_S01: fetch LPAR information"
+  lpar_facts:
+- debug: var=ansible_facts.lpar

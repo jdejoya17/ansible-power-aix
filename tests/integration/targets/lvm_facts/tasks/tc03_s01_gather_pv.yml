@@ -1,0 +1,82 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: check initial VG facts"
+  lvm_facts:
+    name: all
+    component: all
+  register: results
+- debug: var=results
+
+- name: "SETUP: varyon deactivated volume group"
+  lvg:
+    state: varyon
+    vg_name: "{{ vg_name1 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg1 is defined
+    - ansible_facts.LVM.VGs.testvg1.vg_state == "deactivated"
+
+- name: "SETUP: create volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list1 }}"
+    force: "{{ force }}"
+  when: ansible_facts.LVM.VGs.testvg1 is not defined
+
+- name: "SETUP: varyon deactivated volume group"
+  lvg:
+    state: varyon
+    vg_name: "{{ vg_name2 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg2 is defined
+    - ansible_facts.LVM.VGs.testvg2.vg_state == "deactivated"
+
+- name: "SETUP: delete second volume group"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name2 }}"
+  when:
+    - ansible_facts.LVM.VGs.testvg2 is defined
+
+- name: "SETUP: reduce third PV on VG"
+  lvg:
+    state: absent
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list2 }}"
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC03_S01: gather physical volume facts"
+  lvm_facts:
+    name: all
+    component: pv
+- debug: var=ansible_facts
+
+- name: "TC03_S01_ASSERT: expected results"
+  assert:
+    that:
+      - ansible_facts.LVM.PVs.hdisk1.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk2.vg == "{{ vg_name1 }}"
+
+- name: "SETUP: extend volume group"
+  lvg:
+    state: present
+    vg_name: "{{ vg_name1 }}"
+    pvs: "{{ pv_list2 }}"
+
+- name: "TC03_S01: gather physical volume facts - update existing LVM facts"
+  lvm_facts:
+    name: all
+    component: pv
+    lvm: "{{ ansible_facts.LVM }}"
+- debug: var=ansible_facts
+
+- name: "TC03_S01_ASSERT: expected results on updated LVM facts"
+  assert:
+    that:
+      - ansible_facts.LVM.PVs.hdisk1.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk2.vg == "{{ vg_name1 }}"
+      - ansible_facts.LVM.PVs.hdisk3.vg == "{{ vg_name1 }}"
