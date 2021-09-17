@@ -21,6 +21,7 @@ jobs:
       run:
         working-directory: ansible_collections/ibm/power_aix
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['2.7', '3.6', '3.7', '3.8']
 
@@ -45,11 +46,11 @@ jobs:
         make compile PYTHON_VERSION=${{ matrix.python-version }}
 
   ########################################################################
-  # linting test
+  # module linting test
   # - makes sure that the collection conforms with PEP8 coding style
   # standards
   ########################################################################
-  linting-test:
+  module-linting-test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,7 +60,7 @@ jobs:
         ansible-version: ['2.9']
         python-version: ['3.7']
 
-    name: running linting test
+    name: running module linting test
     steps:
     - name: checkout repository
       uses: actions/checkout@v2
@@ -79,8 +80,42 @@ jobs:
 
     - name: run pep8 coding style linter
       run: |
-        make lint
-   
+        make module-lint
+
+  ########################################################################
+  # role linting test
+  ########################################################################
+  role-linting-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible_collections/ibm/power_aix
+    strategy:
+      matrix:
+        ansible-version: ['2.9']
+        python-version: ['3.7']
+
+    name: running role linting test
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v2
+      with:
+        path: ansible_collections/ibm/power_aix
+      
+    - name: setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: install linting test requirements
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install ansible-lint[core,yamllint]
+
+    - name: run pep8 coding style linter
+      run: |
+        make role-lint
+
   ########################################################################
   # sanity test
   # - makes sure that the collection passes the ansible sanity tests
@@ -91,6 +126,7 @@ jobs:
       run:
         working-directory: ansible_collections/ibm/power_aix
     strategy:
+      fail-fast: false
       matrix:
         ansible-version: ['2.9', '3', '4', 'devel']
         python-version: ['3.8']
