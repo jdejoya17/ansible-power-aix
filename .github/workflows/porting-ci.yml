@@ -94,7 +94,7 @@ jobs:
         ansible-version: ['2.9']
         python-version: ['3.7']
 
-    name: running python3 porting test
+    name: running python3 porting test on futurized modules
     steps:
     - name: checkout repository
       uses: actions/checkout@v2
@@ -117,8 +117,10 @@ jobs:
 
     - name: run futurize
       run: futurize --write --both-stages --print-function  plugins/modules/ 
+      with:
+        path: ansible_collections/ibm/power_aix
 
-    - name: run python3 porting linter
+    - name: run python3 porting linter on futurized modules
       run: |
         make porting 
 
