@@ -117,11 +117,7 @@ jobs:
 
     - name: run futurize
       run: |
-        futurize --write --stage1 --print-function  plugins/modules/ 
-
-    - name: list plugins/modules
-      run: |
-        ls plugins/modules
+        futurize --write --both-stages --print-function  plugins/modules/ 
 
     - name: run python3 porting linter on futurized modules
       run: |
@@ -279,9 +275,12 @@ jobs:
     - name: install futurize requirements
       run: |
         python -m pip install future
+        python -m pip install modernize
 
     - name: run futurize
-      run: futurize --write --both-stages --print-function  plugins/modules/ 
+      run: |
+        python-modernize --write --future-unicode --print-function  plugins/modules/ 
+        # futurize --write --both-stages --print-function  plugins/modules/ 
 
     - name: run unit tests
       run: |
