@@ -116,9 +116,12 @@ jobs:
         python -m pip install future
 
     - name: run futurize
-      run: futurize --write --both-stages --print-function  plugins/modules/ 
-      with:
-        path: ansible_collections/ibm/power_aix
+      run: |
+        futurize --write --both-stages --print-function  plugins/modules/ 
+
+    - name: list plugins/modules
+      run: |
+        ls plugins/modules
 
     - name: run python3 porting linter on futurized modules
       run: |
