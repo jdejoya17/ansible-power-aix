@@ -117,7 +117,7 @@ jobs:
 
     - name: run futurize
       run: |
-        futurize --write --both-stages --print-function  plugins/modules/ 
+        futurize --write --stage1 --print-function  plugins/modules/ 
 
     - name: list plugins/modules
       run: |
