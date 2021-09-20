@@ -1,0 +1,18 @@
+---
+#######################################################
+# TC01_S01: create new entry in /etc/inittab
+#######################################################
+- include: "tc01_s01_new_entry.yml"
+- include: "tc01_s01_new_entry.yml"
+
+#######################################################
+# TC02_S01: modify entry in /etc/inittab
+#######################################################
+- include: "tc02_s01_modify_entry.yml"
+- include: "tc02_s01_modify_entry.yml"
+
+#######################################################
+# TC03_S01: delete entry in /etc/inittab
+#######################################################
+- include: "tc03_s01_remove_entry.yml"
+- include: "tc03_s01_remove_entry.yml"

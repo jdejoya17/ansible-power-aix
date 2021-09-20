@@ -1,0 +1,65 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: check if cleanup is needed"
+  shell: ls /tmp/tc02_s01_modify_entry || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: create new entry in uprintfd"
+  inittab:
+    state: present
+    name: "{{ name_v }}"
+    runlevel: "{{ runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+    insertafter: 'perfstat'
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC02_S01: modify entry in uprintfd"
+  inittab:
+    state: modify
+    name: "{{ name_v }}"
+    runlevel: "{{ new_runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+    insertafter: 'perfstat'
+  register: results
+- debug: var=results
+
+- name: "SETUP: print new entry"
+  shell: cat /etc/inittab | grep "{{ command_v }}"
+  register: output
+- debug: var=output
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - output.stdout.find( "{{ name_v }}:" ) != -1
+      - output.stdout.find( "{{ command_v }}" ) != -1
+      - output.stdout.find( "{{ new_runlevel_v }}" ) != -1
+      - output.stdout.find( "{{ action_v }}" ) != -1
+      - results.msg.find( "changed SUCCESSFULLY" ) != -1
+  when: results is changed
+
+- name: "SETUP: make sures not to perform setup cleanup"
+  shell: touch /tmp/tc02_s01_modify_entry
+  when: results is changed
+
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - output.stdout.find( "{{ name_v }}:" ) != -1
+      - output.stdout.find( "{{ command_v }}" ) != -1
+      - output.stdout.find( "{{ new_runlevel_v }}" ) != -1
+      - output.stdout.find( "{{ action_v }}" ) != -1
+      - results is not changed
+  ignore_errors: true
+  when: run.stdout.find( "first run" ) == -1
+
+- name: "TEARDOWN: cleanup environment"
+  shell: rm /tmp/tc02_s01_modify_entry
+  when: run.stdout.find( "first run" ) == -1

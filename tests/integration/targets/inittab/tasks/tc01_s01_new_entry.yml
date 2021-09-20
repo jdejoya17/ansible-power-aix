@@ -1,0 +1,63 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: check if cleanup is needed"
+  shell: ls /tmp/tc01_s01_new_entry || echo "needs cleanup"
+  register: run
+  changed_when: false
+
+- name: "SETUP: cleanup the uprintfd entry"
+  inittab:
+    state: absent
+    name: "{{ name_v }}"
+    runlevel: "{{ runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+  when: run.stdout.find( "needs cleanup" ) != -1
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC01_S01: create new entry in uprintfd"
+  inittab:
+    state: present
+    name: "{{ name_v }}"
+    runlevel: "{{ runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+    insertafter: 'perfstat'
+  register: results
+- debug: var=results
+
+- name: "SETUP: print new entry"
+  shell: cat /etc/inittab | grep "usr/sbin/uprintfd"
+  register: output
+- debug: var=output
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - output.stdout.find( "{{ name_v }}:" ) != -1
+      - output.stdout.find( "{{ command_v }}" ) != -1
+      - output.stdout.find( "{{ runlevel_v }}" ) != -1
+      - output.stdout.find( "{{ action_v }}" ) != -1
+      - results.msg.find( "Entry is created in inittab file SUCCESSFULLY" ) != -1
+  when: results is changed
+
+- name: "SETUP: make sures not to perform setup cleanup"
+  shell: touch /tmp/tc01_s01_new_entry
+  when: results is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - output.stdout.find( "{{ name_v }}:" ) != -1
+      - output.stdout.find( "{{ command_v }}" ) != -1
+      - output.stdout.find( "{{ runlevel_v }}" ) != -1
+      - output.stdout.find( "{{ action_v }}" ) != -1
+  when: results is not changed
+
+- name: "TEARDOWN: cleanup environment"
+  shell: rm /tmp/tc01_s01_new_entry
+  when: results is not changed

@@ -1,0 +1,60 @@
+---
+##################################
+# Setup Tasks
+##################################
+- name: "SETUP: check if cleanup is needed"
+  shell: ls /tmp/tc03_s01_remove_entry || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: create new entry in uprintfd"
+  inittab:
+    state: present
+    name: "{{ name_v }}"
+    runlevel: "{{ new_runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+    insertafter: 'perfstat'
+  when: run.stdout.find( "first run" ) != -1
+
+##################################
+# Actual Tasks To Be Tested
+##################################
+- name: "TC03_S01: delete entry in uprintfd"
+  inittab:
+    state: absent
+    name: "{{ name_v }}"
+    runlevel: "{{ new_runlevel_v }}"
+    action: "{{ action_v }}"
+    command: "{{ command_v }}"
+    insertafter: 'perfstat'
+  register: results
+- debug: var=results
+
+- name: "SETUP: print new entry"
+  shell: cat /etc/inittab | grep "{{ command_v }}"
+  register: output
+  ignore_errors: true
+- debug: var=output
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - output is failed
+  when: results is changed
+
+- name: "SETUP: make sures not to perform setup cleanup"
+  shell: touch /tmp/tc03_s01_remove_entry
+  when: results is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - results.msg.find( "" ) != -1
+  ignore_errors: true
+  when:  results is not changed
+  # run.stdout.find( "first run" ) == -1
+
+- name: "TEARDOWN: cleanup environment"
+  shell: rm /tmp/tc03_s01_remove_entry
+  when: run.stdout.find( "first run" ) == -1

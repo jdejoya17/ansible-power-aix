@@ -1,0 +1,8 @@
+---
+group_v:  "grouptst"
+member_v: "usertst"
+command_v: "/usr/sbin/uprintfd"
+name_v: "uprintfd"
+runlevel_v: "23456789"
+new_runlevel_v: "1234567"
+action_v: "respawn"
