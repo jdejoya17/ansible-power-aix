@@ -1,0 +1,27 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC03_S01: save default level rules in normal format
+        - specify bad file - error expected"
+  aixpert:
+    mode: save
+    level: default
+    norm_fmt_file: "{{ save_bad_file_v }}"
+  ignore_errors: true
+  register: results
+- debug: var=results
+
+- name: "TC03_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - results is failed
+      - results.msg.find( "Unable to access the file" ) != -1

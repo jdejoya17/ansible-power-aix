@@ -1,0 +1,22 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC05_S01: query security setting"
+  aixpert:
+    mode: query
+  register: results
+- debug: var=results
+
+- name: "TC05_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - results is not changed

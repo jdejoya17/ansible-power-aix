@@ -1,0 +1,28 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC01_S01: apply the medium security to the system"
+  aixpert:
+    mode: apply
+    level: medium
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results is changed
+
+# TODO: create aseertion for second run, expect nothing
+# changed if it is decided to make this idempotent.
+
+    

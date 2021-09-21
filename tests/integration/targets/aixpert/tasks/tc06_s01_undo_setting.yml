@@ -1,0 +1,23 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC06_S01: undo security setting"
+  aixpert:
+    mode: undo
+  register: results
+- debug: var=results
+
+- name: "TC06_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - results is changed
+      - results.msg.find( "aixpert settings undone successfully" ) != -1

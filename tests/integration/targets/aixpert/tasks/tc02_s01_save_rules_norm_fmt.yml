@@ -1,0 +1,32 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC02_S01: save default level rules in normal format"
+  aixpert:
+    mode: save
+    level: default
+    norm_fmt_file: "{{ save_good_file_v }}"
+  register: results
+- debug: var=results
+
+- name: "SETUP: check that file was created"
+  stat:
+    path: "{{ save_good_file_v }}"
+  register: stat_result
+# - debug: var=stat_result
+
+- name: "TC02_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - stat_result.stat.exists
+      - results is changed
+      - results.msg.find( "aixpert settings applied/saved successfully" ) != -1

@@ -1,0 +1,39 @@
+---
+#######################################################
+# TC01_S01: apply medium security on system
+# TODO: applying setting is not idempotent, always
+# says changed even though the system is already
+# set to the specified security setting
+#######################################################
+- include: "tc01_s01_aixpert_apply.yml"
+- include: "tc01_s01_aixpert_apply.yml"
+
+#######################################################
+# TC02_S01: save rules in normal format
+#######################################################
+- include: "tc02_s01_save_rules_norm_fmt.yml"
+- include: "tc02_s01_save_rules_norm_fmt.yml"
+
+#######################################################
+# TC03_S01: save rules in normal format - bad directory
+#######################################################
+- include: "tc03_s01_save_rules_norm_fmt_err_dir.yml"
+- include: "tc03_s01_save_rules_norm_fmt_err_dir.yml"
+
+#######################################################
+# TC04_S01: apply rules from bad file - expect error
+#######################################################
+- include: "tc04_s01_err_apply_rules_from_bad_file.yml"
+- include: "tc04_s01_err_apply_rules_from_bad_file.yml"
+
+#######################################################
+# TC05_S01: query security setting
+#######################################################
+- include: "tc05_s01_query_setting.yml"
+# - include: "tc05_s01_query_setting.yml"
+
+#######################################################
+# TC06_S01: undo security setting
+#######################################################
+- include: "tc06_s01_undo_setting.yml"
+# - include: "tc06_s01_undo_setting.yml"

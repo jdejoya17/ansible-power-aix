@@ -1,0 +1,4 @@
+---
+save_bad_file_v: /home/test123321/norm.xml
+save_bad_folder_v: /home/test123321
+save_good_file_v: /tmp/norm.xml

@@ -1,0 +1,25 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: remove any configuration file if any"
+  file:
+    state: absent
+    path: "{{ save_bad_folder_v }}"
+
+#######################################################
+# Actual Tests To Be Tested
+#######################################################
+- name: "TC04_S01: apply rules from bad file - 
+        expect not changed"
+  aixpert:
+    mode: apply
+    profile: "{{ save_bad_file_v }}"
+  register: results
+- debug: var=results
+
+- name: "TC04_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - results is not changed
+      - results.msg.find( "Specified profile '{{ save_bad_file_v }}' doesn't exist" ) != -1
