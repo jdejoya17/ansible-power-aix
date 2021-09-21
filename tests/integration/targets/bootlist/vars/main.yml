@@ -1,0 +1,12 @@
+---
+network_adapter_v: ent0
+backuplv_v: failsafelv
+disk_v: hdisk0
+bootlv_v: hd5
+backuplv_v: failsafelv
+cd_lv: cd0
+client_v: 9.3.140.241
+bserver_v: 9.3.165.31
+gateway_v: 9.3.141.1
+lv_size: 2
+lv_type: boot

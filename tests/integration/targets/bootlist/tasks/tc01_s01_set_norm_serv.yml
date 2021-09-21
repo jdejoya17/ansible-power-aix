@@ -1,0 +1,67 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: make sure not to reurun setup on second run"
+  shell: ls /tmp/tc01_s01_set_norm_serv || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: create a failsafe logical volume"
+  lvol:
+    state: present
+    vg: rootvg
+    lv: "{{ backuplv_v }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+    extra_opts: "-ae"
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: create boot image into '{{ backuplv_v }}'"
+  shell:
+    cmd: "bosboot -aD -l {{ backuplv_v }}"
+  when: run.stdout.find( "first run" ) != -1
+
+#######################################################
+# Actual Tasks to be Tested
+#######################################################
+- name: "TC01_S01: set normal and service boot lists"
+  bootlist:
+    normal:
+      - device: "{{ disk_v }}"
+        blv: "{{ bootlv_v }}"
+    service:
+      - device: "{{ disk_v }}"
+        blv: "{{ backuplv_v }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results is changed
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: make sure not rerun setup on second run"
+  shell: touch /tmp/tc01_s01_set_norm_serv
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "TC01_S01_ASSERT2: expected results - second run run"
+  assert:
+    that:
+      - results is not changed
+  ignore_errors: true
+  when: run.stdout.find( "/tmp/tc01_s01_set_norm_serv" ) != -1
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc01_s01_set_norm_serv
+  when: run.stdout.find( "/tmp/tc01_s01_set_norm_serv" ) != -1
+
+########################################################
+## Teardown Tasks
+########################################################
+#- name: "TEARDOWN: cleanup the failsafe logical volume"
+#  lvol:
+#    state: absent
+#    vg: rootvg
+#    lv: "{{ backuplv_v }}"

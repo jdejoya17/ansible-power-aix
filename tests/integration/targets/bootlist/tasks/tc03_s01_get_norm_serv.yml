@@ -1,0 +1,63 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: create a failsafe logical volume"
+  lvol:
+    state: present
+    vg: rootvg
+    lv: "{{ backuplv_v }}"
+    size: "{{ lv_size }}"
+    lv_type: "{{ lv_type }}"
+    extra_opts: "-ae"
+
+- name: "SETUP: create boot image into '{{ backuplv_v }}'"
+  shell:
+    cmd: "bosboot -aD -l {{ backuplv_v }}"
+
+- name: "SETUP: set normal and service boot lists 
+        that include network adapters"
+  bootlist:
+    normal:
+      - device: "{{ disk_v }}"
+        blv: "{{ bootlv_v }}"
+      - device: "{{ network_adapter_v }}"
+        client: "{{ client_v }}"
+        gateway: "{{ gateway_v }}"
+        bserver: "{{ bserver_v }}"
+    service:
+      - device: "{{ disk_v }}"
+        blv: "{{ backuplv_v }}"
+  register: results
+- debug: var=results
+
+#######################################################
+# Actual Tasks to be Tested
+#######################################################
+- name: "TC03_S01: retrieve normal and service boot lists"
+  bootlist:
+  register: results
+- debug: var=results.ansible_facts.bootlist
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results.ansible_facts.bootlist.normal.0.device == "{{ disk_v }}"
+      - results.ansible_facts.bootlist.normal.0.blv == "{{ bootlv_v }}"
+      - results.ansible_facts.bootlist.normal.1.device == "{{ network_adapter_v }}"
+      - results.ansible_facts.bootlist.normal.1.client == "{{ client_v }}"
+      - results.ansible_facts.bootlist.normal.1.gateway == "{{ gateway_v }}"
+      - results.ansible_facts.bootlist.normal.1.bserver == "{{ bserver_v }}"
+      - results.ansible_facts.bootlist.service.0.device == "{{ disk_v }}"
+      - results.ansible_facts.bootlist.service.0.blv == "{{ backuplv_v }}"
+      - results is not changed
+  ignore_errors: true
+
+#######################################################
+# Teardown Tasks
+#######################################################
+- name: "TEARDOWN: cleanup the failsafe logical volume"
+  lvol:
+    state: absent
+    vg: rootvg
+    lv: "{{ backuplv_v }}"

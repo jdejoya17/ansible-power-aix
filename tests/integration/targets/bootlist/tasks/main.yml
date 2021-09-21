@@ -1,0 +1,18 @@
+---
+#######################################################
+# TC01_S01: set normal and service boot lists
+#######################################################
+- include: "tc01_s01_set_norm_serv.yml"
+- include: "tc01_s01_set_norm_serv.yml"
+
+#######################################################
+# TC02_S01: set normal and service boot lists 
+# the include network adapters
+#######################################################
+- include: "tc02_s01_set_norm_net_adpt.yml"
+- include: "tc02_s01_set_norm_net_adpt.yml"
+
+#######################################################
+# TC03_S01: retrieve normal and service boot lists
+#######################################################
+- include: "tc03_s01_get_norm_serv.yml"
