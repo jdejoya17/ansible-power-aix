@@ -1,0 +1,73 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: remove the device"
+  command:
+    cmd: "rmdev -df {{ device_v }}"
+  ignore_errors: yes
+
+- name: "SETUP: discover device"
+  shell:
+    cmd: "cfgmgr"
+
+- name: "SETUP: collect devices states and verify the
+        unconfigured device is in defined state"
+  setup:
+  register: output
+  changed_when: false
+# - debug: var=output
+
+- name: "SETUP: do no uncofigure device on second run"
+  shell: ls /tmp/tc02_s01_config_device || echo "unconfigure device"
+  changed_when: false
+  register: run
+
+- name: "SETUP: unconfigure device"
+  devices:
+    device: "{{ device_v }}"
+    state: defined
+  when:
+    - run.stdout.find( "unconfigure device" ) != -1
+    - "output.ansible_facts.ansible_devices.{{ device_v }}.state != 'Defined'"
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC02_S01: configure device"
+  devices:
+    device: "{{ device_v }}"
+    state: available
+  register: results
+- debug: var=results
+
+- name: "SETUP: collect devices states and verify the
+        unconfigured device is in available state"
+  setup:
+  register: output
+  changed_when: false
+# - debug: var=output
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+      - results.msg.find( "Device configuration completed" ) != -1
+    fail_msg: "device should have been available"
+  when: results is changed
+
+- name: "SETUP: make sure not to unconfigure the device on second run"
+  shell: touch /tmp/tc02_s01_config_device
+  when: results is changed
+
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+      - results.msg.find( "already in Available state" ) != -1
+    fail_msg: "device should have been available"
+  when: results is not changed
+
+- name: "SETUP: clean up environment"
+  shell: rm /tmp/tc02_s01_config_device
+  when: results is not changed

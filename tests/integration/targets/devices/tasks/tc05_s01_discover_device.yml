@@ -1,0 +1,50 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: do not remove device again"
+  shell: ls /tmp/tc05_s01_discover_device || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: remove the device"
+  devices:
+    device: "{{ device_v }}"
+    state: removed
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC05_S01: discover device"
+  devices:
+    device: "all"
+    state: available
+  register: results
+- debug: var=results
+
+- name: "SETUP: collect devices states"
+  setup:
+  register: output
+  changed_when: false
+
+- name: "TC05_S01_ASSERT: expected results - first run"
+  assert:
+    that:
+      - results.msg.find( "Device configuration completed" ) != -1
+      - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Available'"
+    fail_msg: "attributes were not changed"
+  when: results is changed
+
+- name: "SETUP: make sure not to reset on second run"
+  shell: touch /tmp/tc05_s01_discover_device
+  when: results is changed
+
+# - name: "TC05_S01_ASSERT2: expected results - second run"
+#   assert:
+#     that:
+#       - results.msg.find( "already in Available state" ) != -1
+#   when: results is not changed
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc05_s01_discover_device
+  when: run.stdout.find( "/tmp/tc05_s01_discover_device" ) != -1

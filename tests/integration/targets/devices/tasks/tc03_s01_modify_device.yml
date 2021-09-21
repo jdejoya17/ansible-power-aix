@@ -1,0 +1,64 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: remove the device"
+  command:
+    cmd: "rmdev -df {{ device_v }}"
+  ignore_errors: yes
+
+- name: "SETUP: discover device"
+  shell:
+    cmd: "cfgmgr"
+
+- name: "SETUP: do no uncofigure device on second run"
+  shell: ls /tmp/tc03_s01_modify_device || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: make device available"
+  devices:
+    device: "{{ device_v }}"
+    state: available
+
+- name: "SETUP: set original attribute"
+  devices:
+    device: "{{ device_v }}"
+    attributes: "{{ attributes_orig_v }}"
+    chtype: 'reset'
+    state: available
+  when:
+    - run.stdout.find( "first run" ) != -1
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC03_S01: change device attribute"
+  devices:
+    device: "{{ device_v }}"
+    attributes: "{{ attributes_v }}"
+    chtype: 'reset'
+    state: available
+  register: results
+- debug: var=results
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results.msg.find( "Modification of Device attributes completed" ) != -1
+    fail_msg: "attributes were not changed"
+  when: results is changed
+
+- name: "SETUP: make sure not to reset on second run"
+  shell: touch /tmp/tc03_s01_modify_device
+  when: results is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - results.msg.find( "Nothing was modified for device" ) != -1
+  when: results is not changed
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc03_s01_modify_device
+  when: results is not changed

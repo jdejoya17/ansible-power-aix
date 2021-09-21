@@ -1,0 +1,71 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: remove the device"
+  command:
+    cmd: "rmdev -df {{ device_v }}"
+  ignore_errors: true
+
+- name: "SETUP: discover device"
+  shell:
+    cmd: "cfgmgr"
+
+- name: "SETUP: do no uncofigure device on second run"
+  shell: ls /tmp/tc01_s01_unconfig_device || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: configure device"
+  devices:
+    device: "{{ device_v }}"
+    state: available
+  when:
+    - run.stdout.find( "first run" ) != -1
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC01_S01: unconfigure device"
+  devices:
+    device: "{{ device_v }}"
+    state: defined
+  register: results
+- debug: var=results
+
+- name: "SETUP: collect devices states and verify the
+        unconfigured device is in defined state"
+  setup:
+  register: output
+  changed_when: false
+# - debug: var=output
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Defined'"
+      - results.msg.find( "Operation 'unconfigure' for device '{{ device_v }}' completed" ) != -1
+    fail_msg: "device should have been defined"
+  when:
+    - results is changed
+    - run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: make sure not to unconfigure the device on second run"
+  shell: touch /tmp/tc01_s01_unconfig_device
+  when: 
+    - results is changed
+    - run.stdout.find( "first run" ) != -1
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - "output.ansible_facts.ansible_devices.{{ device_v }}.state == 'Defined'"
+      - results is not changed
+    fail_msg: "device should have been defined"
+  ignore_errors: true
+  when: 
+    - run.stdout.find( "/tmp/tc01_s01_unconfig_device" ) != -1
+
+- name: "SETUP: clean up environment"
+  shell: rm /tmp/tc01_s01_unconfig_device
+  when: run.stdout.find( "/tmp/tc01_s01_unconfig_device" ) != -1

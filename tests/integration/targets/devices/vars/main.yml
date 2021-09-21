@@ -1,0 +1,5 @@
+---
+device_v: pkcs11
+attributes_v: "trc_adm=yes"
+attributes_orig_v: "trc_adm=no"
+device_recursive_v: fcs0

@@ -1,0 +1,50 @@
+---
+######################################################
+# Setup Tasks
+######################################################
+- name: "SETUP: remove the device"
+  command:
+    cmd: "rmdev -df {{ device_v }}"
+  ignore_errors: yes
+
+- name: "SETUP: do not discover device again"
+  shell: ls /tmp/tc04_s01_remove_device || echo "first run"
+  register: run
+  changed_when: false
+
+- name: "SETUP: discover device"
+  shell:
+    cmd: "cfgmgr"
+  when:
+    - run.stdout.find( "first run" ) != -1
+
+######################################################
+# Actual Tasks To Be Tested
+######################################################
+- name: "TC04_S01: remove device"
+  devices:
+    device: "{{ device_v }}"
+    state: removed
+  register: results
+- debug: var=results
+
+- name: "TC04_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results.msg.find( "Successfully removed definition" ) != -1
+    fail_msg: "attributes were not changed"
+  when: results is changed
+
+- name: "SETUP: make sure not to reset on second run"
+  shell: touch /tmp/tc04_s01_remove_device
+  when: results is changed
+
+- name: "TC04_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - results.msg.find( "does not exist" ) != -1
+  when: results is not changed
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc04_s01_remove_device
+  when: results is not changed
