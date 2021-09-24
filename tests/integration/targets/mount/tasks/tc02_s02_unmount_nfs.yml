@@ -99,7 +99,8 @@
 - name: "TC02_S02: umount NFS"
   mount:
     state: umount
-    mount_dir: "{{ nfs_client }}"
+    mount_dir: "{{ nfs_serv }}"
+    mount_over_dir: "{{ nfs_client }}"
   register: results
 - debug: var=results
 
