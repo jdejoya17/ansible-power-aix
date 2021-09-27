@@ -1,0 +1,30 @@
+---
+######################################################
+# TC01_S01: creating a group
+######################################################
+- include: "tc01_s01_create_group.yml"
+- include: "tc01_s01_create_group.yml"
+
+######################################################
+# TC02_S01: add member to group
+######################################################
+- include: "tc02_s01_add_member.yml"
+- include: "tc02_s01_add_member.yml"
+
+######################################################
+# TC03_S01: remove member from group
+######################################################
+- include: "tc03_s01_remove_member.yml"
+- include: "tc03_s01_remove_member.yml"
+
+######################################################
+# TC04_S01: modify a group
+######################################################
+- include: "tc04_s01_modify_group.yml"
+- include: "tc04_s01_modify_group.yml"
+
+######################################################
+# TC05_S01: remove a group
+######################################################
+- include: "tc05_s01_remove_group.yml"
+- include: "tc05_s01_remove_group.yml"

@@ -1,0 +1,52 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: make sure not to setup again on second run"
+  shell: ls /tmp/tc05_s01_remove_group || echo "start setup"
+  changed_when: false
+  register: result
+
+- name: "SETUP: create a group"
+  group:
+    state: present
+    name: "{{ group_v }}"
+  when: result.stdout.find( "start setup" ) != -1
+
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ member_v }}"
+  when: result.stdout.find( "start setup" ) != -1
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC05_S01: remove group"
+  group:
+    state: absent 
+    name: "{{ group_v }}"
+  register: result
+- debug: var=result
+
+- name: "TC05_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - result.msg.find( "SUCCESSFULLY removed" ) != -1
+    fail_msg: "Remove group {{ group_v }} did not work."
+  when: result is changed
+
+- name: "SETUP: make sure not to setup again on second run"
+  shell: touch /tmp/tc05_s01_remove_group
+  when: result is changed
+
+- name: "TC05_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - result.msg.find( "Group name is NOT FOUND" ) != -1 
+    fail_msg: "It should have not shown any changes for admin=true"
+  when: result is not changed
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc05_s01_remove_group
+  when: result is not changed

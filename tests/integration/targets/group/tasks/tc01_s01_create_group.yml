@@ -1,0 +1,24 @@
+---
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC01_S01: create a group"
+  group:
+    state: present
+    name: "{{ group_v }}"
+  register: result
+- debug: var=result
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - result.msg.find( "SUCCESSFULLY created" ) != -1
+    fail_msg: "It should have rcCreated a group"
+  when: result is changed
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - result.msg.find( "already exists" ) != -1 
+    fail_msg: "Create group {{ group_v }} again idempotent error"
+  when: result is not changed

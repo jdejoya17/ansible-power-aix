@@ -1,0 +1,42 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: create a group"
+  group:
+    state: present
+    name: "{{ group_v }}"
+  when: result.stdout.find( "create group" ) != -1
+
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ member_v }}"
+  when: result.stdout.find( "create user" ) != -1
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC02_S01: add user to group"
+  group:
+    state: modify 
+    name: "{{ group_v }}"
+    user_list_action: 'add'
+    user_list_type: 'members'
+    users_list: "{{ member_v }}"
+  register: result
+- debug: var=result
+
+- name: "TC02_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - result.msg.find( "SUCCESSFULLY modified" ) != -1
+    fail_msg: "The member {{ member_v }} should have been added"
+  when: result is changed
+
+- name: "TC02_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - result.msg.find( "was not modified" ) != -1 
+    fail_msg: "Add member  {{ member_v }} again idempotent error"
+  when: result is not changed

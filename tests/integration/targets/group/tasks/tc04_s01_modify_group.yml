@@ -1,0 +1,38 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: create a group"
+  group:
+    state: present
+    name: "{{ group_v }}"
+
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ member_v }}"
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC04_S01: modify group"
+  group:
+    state: modify 
+    name: "{{ group_v }}"
+    group_attributes: "admin=true"
+  register: result
+- debug: var=result
+
+- name: "TC04_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - result.msg.find( "attributes SUCCESSFULLY set" ) != -1
+    fail_msg: "It should have modified admin=true"
+  when: result is changed
+
+- name: "TC04_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - result.msg.find( "attributes were not changed" ) != -1 
+    fail_msg: "It should have not shown any changes for admin=true"
+  when: result is not changed

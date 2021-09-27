@@ -1,0 +1,62 @@
+---
+#######################################
+# Setup Tasks
+#######################################
+- name: "SETUP: create a group"
+  group:
+    state: present
+    name: "{{ group_v }}"
+
+- name: "SETUP: create user"
+  user:
+    state: present
+    name: "{{ member_v }}"
+
+- name: "SETUP: check if second run"
+  shell: ls /tmp/tc03_s01_remove_member || echo "add user"
+  changed_when: false
+  register: result
+
+- name: "SETUP: add user to group"
+  group:
+    state: modify 
+    name: "{{ group_v }}"
+    user_list_action: 'add'
+    user_list_type: 'members'
+    users_list: "{{ member_v }}"
+  when: result.stdout.find( "add user" ) != -1
+
+#######################################
+# Actual Task To Be Tested
+#######################################
+- name: "TC03_S01: remove user from group"
+  group:
+    state: modify 
+    name: "{{ group_v }}"
+    user_list_action: 'remove'
+    user_list_type: 'members'
+    users_list: "{{ member_v }}"
+  register: result
+- debug: var=result
+
+- name: "TC03_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - result.msg.find( "SUCCESSFULLY modified" ) != -1
+    fail_msg: "The member {{ member_v }} should have been removed."
+  when: result is changed
+
+- name: "SETUP: make sure not to add user again on second run"
+  shell: touch /tmp/tc03_s01_remove_member
+  when: result is changed
+
+- name: "TC03_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - result.msg.find( "was not modified" ) != -1 
+    fail_msg: "Removing member {{ member_v }} again idempotent error."
+  when: result is not changed
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc03_s01_remove_member
+  when: result is not changed
