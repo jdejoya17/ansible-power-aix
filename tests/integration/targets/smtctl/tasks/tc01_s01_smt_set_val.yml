@@ -1,0 +1,51 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+- name: "SETUP: check if first run"
+  shell: ls /tmp/tc01_s01_smt_set_val || echo "first run"
+  changed_when: false
+  register: run
+
+- name: "SETUP: enable the SMT value to 4 and value 
+        needs to be persist across subsequent reboot"
+  smtctl:
+    smt_value: "{{ smt_val1 }}"
+    bos_boot: "{{ persist }}"
+  when: run.stdout.find( "first run" ) != -1
+
+#######################################################
+# Actual Tasks to be Tested
+#######################################################
+- name: "TC01_S01: enable the SMT value to 8 and value 
+        needs to persist across subsequent reboot"
+  smtctl:
+    smt_value: "{{ smt_val2 }}"
+    bos_boot: "{{ persist }}"
+  register: results
+- debug: var=results
+
+- name: "TC01_S01_ASSERT1: expected results - first run"
+  assert:
+    that:
+      - results is changed
+      - results.msg.find( "Command Executed Successfully cmd" ) != -1
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "SETUP: determines completed second run"
+  shell: touch /tmp/tc01_s01_smt_set_val
+  when: run.stdout.find( "first run" ) != -1
+
+- name: "TC01_S01_ASSERT2: expected results - second run"
+  assert:
+    that:
+      - results is not changed
+      - results.msg.find( "No Changes" ) != -1
+  when: run.stdout.find( "/tmp/tc01_s01_smt_set_val" ) != -1
+
+- name: "SETUP: cleanup environment"
+  shell: rm /tmp/tc01_s01_smt_set_val
+  when: run.stdout.find( "/tmp/tc01_s01_smt_set_val" ) != -1
+
+
+

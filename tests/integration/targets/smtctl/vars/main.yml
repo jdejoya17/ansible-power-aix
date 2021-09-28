@@ -1,0 +1,7 @@
+smt_val1: 4
+smt_val2: 8
+persist: true
+chtype: boot
+smt_limit: limit
+smt_state: disabled
+smt_extra: recommended

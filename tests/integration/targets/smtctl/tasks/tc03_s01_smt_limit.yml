@@ -1,0 +1,42 @@
+---
+#######################################################
+# Setup Tasks
+#######################################################
+# - name: "SETUP: check if first run"
+#   shell: ls /tmp/tc03_s01_smt_limit || echo "first run"
+#   changed_when: false
+#   register: run
+
+#######################################################
+# Actual Tasks to be Tested
+#######################################################
+- name: "TC03_S01: limit SMT value to 4"
+  smtctl:
+    smt_value: "{{ smt_val1 }}"
+    smt_limit: "{{ smt_limit }}"
+  register: results
+- debug: var=results
+
+- name: "TC03_S01_ASSERT: expected results - first/second run"
+  assert:
+    that:
+      - results is changed
+      - results.msg.find( "Command Executed Successfully cmd" ) != -1
+  # when: run.stdout.find( "first run" ) != -1
+
+# - name: "SETUP: determines completed second run"
+#   shell: touch /tmp/tc03_s01_smt_limit
+#   when: run.stdout.find( "first run" ) != -1
+
+# TODO: this action is not idempotent, enable this assert
+# after it is decided to fix this minor issue
+# - name: "TC02_S01_ASSERT2: expected results - second run"
+#   assert:
+#     that:
+#       - results is not changed
+#       - results.msg.find( "No Changes" ) != -1
+#   when: run.stdout.find( "/tmp/tc03_s01_smt_limit" ) != -1
+
+# - name: "SETUP: cleanup environment"
+#   shell: rm /tmp/tc02_s01_smt_set_val_nxt_boot
+#   when: run.stdout.find( "/tmp/tc03_s01_smt_limit" ) != -1

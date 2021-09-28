@@ -1,0 +1,33 @@
+---
+#######################################################
+# TC01_S01: Enable the SMT value to 8 and value needs 
+# to persist across subsequent reboot
+#######################################################
+- include: "tc01_s01_smt_set_val.yml"
+- include: "tc01_s01_smt_set_val.yml"
+
+#######################################################
+# TC02_S01: Enable the SMT value to 8 and value on next
+# reboot needs to persist across subsequent reboot 
+#######################################################
+- include: "tc02_s01_smt_set_val_nxt_boot.yml"
+- include: "tc02_s01_smt_set_val_nxt_boot.yml"
+
+#######################################################
+# TC03_S01: Limit SMT value to 4
+#######################################################
+- include: "tc03_s01_smt_limit.yml"
+- include: "tc03_s01_smt_limit.yml"
+
+########################################################
+## TC04_S01: disable smtctl
+########################################################
+- include: "tc04_s01_smt_disable.yml"
+- include: "tc04_s01_smt_disable.yml"
+
+#######################################################
+# TC05_S01: sets the number of threads to a value that 
+# provides the best performance
+#######################################################
+- include: "tc05_s01_smt_recommended.yml"
+- include: "tc05_s01_smt_recommended.yml"
