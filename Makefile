@@ -31,7 +31,7 @@ help:
 	run sanity testing"
 	@echo "install-unit-test-requirements 			install python modules needed \
 	run unit testing"
-	@echo "install-integration-test-requirements 		install python modules needed \
+	@echo "install-integration-test-requirements 		install python modules needed"
 	@echo "lint 						lint ansible module and roles"         
 	@echo "module-lint MODULE=<module path> 		lint ansible module"         
 	@echo "porting MODULE=<module path>			check if module is python3 ported"
@@ -79,7 +79,7 @@ install-unit-test-requirements:
 	python -m pip install -r tests/unit/unit.requirements
 
 .PHONY: install-integration-test-requirements
-install-unit-test-requirements:
+install-integration-test-requirements:
 	python -m pip install -r tests/integration/integration.requirements
 ######################################################################################
 # testing targets

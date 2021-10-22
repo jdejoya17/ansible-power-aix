@@ -51,11 +51,11 @@
       register: nfsmount
     - name: "Copy files from local Directory to NFS"
       copy:
-      src: '"{{ mksysb_dir }}"/"{{ansible_hostname}}_mksysb_{{ansible_date_time.date}}"'
-      dest: "{{ NFS_mount }}"
-      remote_src: yes
+        src: '"{{ mksysb_dir }}"/"{{ansible_hostname}}_mksysb_{{ansible_date_time.date}}"'
+        dest: "{{ NFS_mount }}"
+        remote_src: yes
       when: nfsmount is succeeded
     - name: "unmount NFS"
       mount:
-      path: "{{ NFS_mount }}"
-      state: unmounted
+        path: "{{ NFS_mount }}"
+        state: umount

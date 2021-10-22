@@ -1,10 +1,11 @@
 ---
 - name: "NIM operation on AIX/VIOS"
-  hosts: nimserver
+  hosts: nimserver2
+  remote_user: root
   gather_facts: no
   vars:
     check_targets_v:        standalone
-    install_targets_v:      quimby06
+    install_targets_v:      carribean-lp4
     update_lpp_v:           latest_sp
     bos_inst_resgroup_v:    basic_res_grp
     bos_inst_script_v:      setup_root
@@ -24,8 +25,8 @@
         action: update
         targets: "{{ install_targets_v }}"
         lpp_source: "{{ update_lpp_v }}"
-        asynchronous: True
-        force: False
+        asynchronous: true
+        force: false
       register: result
     # - debug: var=result
 
@@ -50,7 +51,7 @@
         action: check
         targets: "{{ check_targets_v }}"
       register: result
-    # - debug: var=result
+    - debug: var=result
 
     - name: Compare installation inventories
       nim:
@@ -73,7 +74,7 @@
         action: script
         targets: "{{ install_targets_v }}"
         script: "{{ apply_script_v }}"
-        asynchronous: True
+        asynchronous: true
       register: result
     # - debug: var=result
 
@@ -104,7 +105,7 @@
       nim:
         action: reset
         targets: "{{ check_targets_v }}"
-        force: False
+        force: false
       register: result
     # - debug: var=result
 

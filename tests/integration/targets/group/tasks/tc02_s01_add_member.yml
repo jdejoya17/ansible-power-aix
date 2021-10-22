@@ -6,13 +6,11 @@
   group:
     state: present
     name: "{{ group_v }}"
-  when: result.stdout.find( "create group" ) != -1
 
 - name: "SETUP: create user"
   user:
     state: present
     name: "{{ member_v }}"
-  when: result.stdout.find( "create user" ) != -1
 
 #######################################
 # Actual Task To Be Tested
