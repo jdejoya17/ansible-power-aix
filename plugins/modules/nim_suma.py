@@ -276,6 +276,9 @@ def run_oslevel_cmd(module, machine, oslevels):
         rc, stdout, stderr = module.run_command(cmd)
     else:
         rc, stdout, stderr = nim_exec(module, machine, cmd)
+    print("HERE: rc: {0}, stdout: {1}, stderr: {2}".format(rc, stdout, stderr))
+    oslevels[machine] = [rc, stdout, stderr]
+    return
 
     if rc == 0:
         module.debug('{0} oslevel stdout: "{1}"'.format(machine, stdout))
@@ -284,8 +287,10 @@ def run_oslevel_cmd(module, machine, oslevels):
 
         # return stdout only ... stripped!
         oslevels[machine] = stdout.rstrip()
+        oslevels[machine] = [rc, stdout, stderr]
     else:
         msg = 'Command: \'{0}\' failed with return code {1}.'.format(' '.join(cmd), rc)
+        oslevels[machine] = [rc, stdout, stderr]
         module.log('Failed to get oslevel for {0}: {1}'.format(machine, msg))
 
 
@@ -404,6 +409,9 @@ def get_oslevels(module, targets):
         process.join(300)  # wait 5 min for c_rsh to timeout
         if process.is_alive():
             module.log('[WARNING] {0} Not responding'.format(process))
+    raise Exception(["HERE", oslevels])
+
+    
 
     return oslevels
 
