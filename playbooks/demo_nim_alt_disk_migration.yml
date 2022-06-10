@@ -11,11 +11,11 @@
 # 5. c_rsh must be active (should be good if (1)
 # is properly setup)
 - name: "nim_alt_disk_migration demo"
-  hosts: ansible-test1 
+  hosts: ansible-test1 #nimserver2
   gather_facts: false
   remote_user: root
   vars:
-    nim_client_v: p9zpa-ansible-test2
+    nim_client_v: p9zpa-ansible-test2 #p9zpa-ansible-test4
     target_disk_v: hdisk2
     target_disk_policy_v: minimize
     lpp_source_v: lpp_72V_2114
@@ -52,10 +52,10 @@
 
         # optional, provide a SPOT resource, if not given
         # then the role will derive one from lpp_source
-        # spot: "{{ spot_v }}"
+        spot: "{{ spot_v }}"
 
 # - name: "change bootlist"
-#   hosts: ansible-test4
+#   hosts: ansible-test2
 #   gather_facts: false
 #   remote_user: root
 #   vars:
@@ -69,11 +69,11 @@
 #           - device: "{{ target_disk }}"
 
 # - name: "reboot client LPAR"
-#   hosts: nimserver1
+#   hosts: ansible-test1
 #   gather_facts: false
 #   remote_user: root
 #   vars:
-#     nim_client_v: p9zpa-ansible-test4
+#     nim_client_v: p9zpa-ansible-test2
 #   collections:
 #     - ibm.power_aix
 #   tasks:
