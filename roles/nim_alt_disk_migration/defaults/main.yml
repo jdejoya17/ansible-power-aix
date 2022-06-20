@@ -1,3 +1,4 @@
 ---
 reboot_client: false
 target_disk_force: false
+nim_file_info: "/tmp"

@@ -19,3 +19,5 @@ dflt_retry_wait_time: 1
 
 # Validate lpp_source and spot. Create the spot is needed. 
 validate_resources: true
+validate_resources_only: false
+verify_only: false

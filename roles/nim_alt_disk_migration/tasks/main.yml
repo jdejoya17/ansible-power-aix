@@ -15,7 +15,6 @@
 #       pause: 1
 
 
-
 #############################################################
 #############################################################
 
@@ -67,7 +66,7 @@
 - name: "Fail if a NIM client LPAR is not specified"
   fail:
     msg: "NIM client LPAR to be migrated is not specified"
-  when: nim_client is not defined
+  when: nim_client == None
 - debug: msg="{{ nim_client }} specified to be migrated"
 
 #############################################################
@@ -103,13 +102,23 @@
      - "Exit if the information is not in either source"
      - "client_oslevel | int >= lpp_source_fileset_level | interpreter"
 
-#- name: "Determine if we need to migrate {{ nim_client }} "
-#  block:
-#    - debug:
-#        msg: "{{ nim_client }} is already at {{ lpp_source_fileset_level }} or higher"
+- name: "Read bos.mp64 version from file ~/.nim_info_file_{{ lpp_source }}"
+  include_vars:
+     file: "{{ nim_file_info }}/.nim_info_file_{{ lpp_source }}"
+     name: bosmp64_info
 
-#    - meta: end_play
-#  when: client_oslevel | int >= lpp_source_fileset_level | interpreter
+- name: Retrieve lpp_source bos.mp64 level
+  set_fact:
+    lpp_source_fileset_level: "{{ bosmp64_info.variables.split(':')[1] }}"
+
+
+- name: "Determine if we need to migrate {{ nim_client }} "
+  block:
+    - debug:
+        msg: "{{ nim_client }} is already at {{ lpp_source_fileset_level }} or higher"
+
+    - meta: end_play
+  when: client_oslevel | int >= lpp_source_fileset_level | int 
 
 ############################################################
 ############################################################
