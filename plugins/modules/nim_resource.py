@@ -458,6 +458,7 @@ def res_showres(module, resource, info):
 
         while True:
             return_code, stdout, stderr = module.run_command(cmd)
+            results['testing'] += "max_retries: {0}, rc: {1}".format(max_retries, return_code)
 
             if return_code != 0:
                 max_retries -= 1
@@ -465,9 +466,11 @@ def res_showres(module, resource, info):
                 results['stderr'] = stderr
                 results['stdout'] = stdout
                 results['rc'] = return_code
-                results['msg'] += fail_msg
 
                 if max_retries == 0:
+                    results['msg'] += fail_msg
+                    results['msg'] += "Number of attempts to fetch contents of " 
+                    results['msg'] += "{0} has been reached.".format(resource)
                     module.fail_json(**results)
                     break
 
@@ -480,6 +483,7 @@ def res_showres(module, resource, info):
                     continue
                 else:
                     # for any other error proceed to the next resource
+                    results['msg'] += fail_msg
                     module.fail_json(**results)
                     break
             else:

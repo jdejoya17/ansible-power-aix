@@ -3,6 +3,67 @@
 #############################################################
 #############################################################
 
+
+#- name: "Query bos.alt_disk_install.rte fileset {{ lpp_source }}"
+#  nim_resource:
+#    action: show
+#    name: spot_72V_2114
+#    showres:
+#      fetch_contents: true
+#  with_sequence: count=100
+#  loop_control:
+#       pause: 1
+
+
+
+#############################################################
+#############################################################
+
+- name: "Fail if a NIM LPP resource is not specified"
+  fail:
+    msg: "NIM LPP resource not specified"
+  when: lpp_source is not defined
+- debug: msg="LPP resource {{ lpp_source }} specified for migration"
+
+
+#############################################################
+#############################################################
+
+- name: Perform resources validations 
+  block:
+    #  TODO Change for verify bos.mp64 level. Save it in a file. 
+    - name: "Retrieve {{ lpp_source }} AIX release level"
+      include_tasks: "idempotency_check.yml"
+    - debug: msg="TODO- Add save info into a file"
+
+    #############################################################
+    #############################################################
+
+    - name: "Verify if alt_disk_install.rte fileset is present"
+      include_tasks: "validate_alt_disk_install_fileset.yml"
+    - debug: msg="Fileset alt_disk_install.rte presence validation passed"
+      
+    ############################################################
+    # NOTE: specifying SPOT resource is optional, if not given
+    # then NIM master will generate corresponding SPOT resource
+    # from the specified LPP resource.
+    ############################################################
+
+    - name: "Create SPOT resource if not specified"
+      include_tasks: "create_spot.yml"
+      when: spot is not defined
+    - debug: msg="SPOT resource {{ spot }} specified for migration"
+
+    - name: "End the role if validate_resources_only is set "
+      meta: end_host
+      when: validate_resources_only
+
+  when: validate_resources or validate_resources_only
+
+
+#############################################################
+#############################################################
+
 - name: "Fail if a NIM client LPAR is not specified"
   fail:
     msg: "NIM client LPAR to be migrated is not specified"
@@ -19,43 +80,36 @@
 #############################################################
 #############################################################
 
+- name: "Verify that the client LPAR is at least a Power8 machine"
+  include_tasks: "validate_min_power_level.yml"
+- debug: msg="{{ nim_client }} has at least a PowerPC_Power8 processor"
+
+
 - name: "Fetch client oslevel"
   include_tasks: "get_oslevel.yml"
   when: nim_client is defined
 
-#############################################################
-#############################################################
-
-- name: "Fail if a NIM LPP resource is not specified"
-  fail:
-    msg: "NIM LPP resource not specified"
-  when: lpp_source is not defined
-- debug: msg="LPP resource {{ lpp_source }} specified for migration"
 
 #############################################################
 #############################################################
+# IDEMPOTENCY: TODO: Read the <LPP_RESOURCE_FILE> section of OS_LEVEL to verify if O.S is already at migration level.
+- name:
+  debug:
+    msg: 
+     - "TODO"
+     - "IDEMPOTYENCY TEST read lpp_source O.S level info into file /var/adm/ras/ansible_nim_{{ lpp_source }}_info.info"
+     - "retrieve client_oslevel (if not set)"
+     - "retrieve lpp_source_fileset_level, if not set"
+     - "Exit if the information is not in either source"
+     - "client_oslevel | int >= lpp_source_fileset_level | interpreter"
 
-- name: "Check if we still need to migrate"
-  include_tasks: "idempotency_check.yml"
-- debug: msg="Proceed to migration"
+#- name: "Determine if we need to migrate {{ nim_client }} "
+#  block:
+#    - debug:
+#        msg: "{{ nim_client }} is already at {{ lpp_source_fileset_level }} or higher"
 
-#############################################################
-#############################################################
-
-- name: "Verify if alt_disk_install.rte fileset is present"
-  include_tasks: "validate_alt_disk_install_fileset.yml"
-- debug: msg="Fileset alt_disk_install.rte presence validation passed"
-
-############################################################
-# NOTE: specifying SPOT resource is optional, if not given
-# then NIM master will generate corresponding SPOT resource
-# from the specified LPP resource.
-############################################################
-
-- name: "Create SPOT resource if not specified"
-  include_tasks: "create_spot.yml"
-  when: spot is not defined
-- debug: msg="SPOT resource {{ spot }} specified for migration"
+#    - meta: end_play
+#  when: client_oslevel | int >= lpp_source_fileset_level | interpreter
 
 ############################################################
 ############################################################
@@ -108,12 +162,6 @@
 - debug: msg="{{ target_disk }} of {{ nim_client }} will be used to
               create an alternate disk copy"
 
-#############################################################
-#############################################################
-
-- name: "Verify that the client LPAR is at least a Power8 machine"
-  include_tasks: "validate_min_power_level.yml"
-- debug: msg="{{ nim_client }} has at least a PowerPC_Power8 processor"
 
 #############################################################
 #############################################################
@@ -131,6 +179,20 @@
 #   task will run until it either complete, fail or timeout.
 ############################################################
 
+- name: End playbook if we in verify_only mode
+  block:
+    - name:
+      debug:
+         msg: 
+           - "Verification only! exit the playbook"
+           - "Command to run:"
+           - "/usr/sbin/nimadm -c {{ nim_client }} -l {{ lpp_source }} -s {{ spot }} -d {{ target_disk }} -Y"
+
+    - name: End playbook
+      meta: end_host
+  when: verify_only 
+
+
 - name: "Migrate to alternate disk"  # noqa no-changed-when
   command: "/usr/sbin/nimadm -c {{ nim_client }} -l {{ lpp_source }} -s {{ spot }} -d {{ target_disk }} -Y"
   register: results
@@ -145,7 +207,7 @@
 # job ID
 ############################################################
 
-- name: "Check on an async task"
+- name: "Wait until alternate migration finishes (Could be more than 1 hours. Ignore FAILED RETRING messages) "
   async_status:
     jid: "{{ results.ansible_job_id }}"
   register: async_poll_results

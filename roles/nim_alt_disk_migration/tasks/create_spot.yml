@@ -58,6 +58,8 @@
         name: "dflt_{{ lpp_source }}_spot"
         showres:
           fetch_contents: true
+          max_retries: "{{ dflt_max_retries }}"
+          retry_wait_time: "{{ dflt_retry_wait_time }}"
       register: spot_query
   when: result.stderr.find( "0042-081" ) != -1
 

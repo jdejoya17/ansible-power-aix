@@ -10,3 +10,12 @@ retry_chk_nimadm_comp: "{{ (wait_nimadm_timeout_secs | int / 60) | int + 1 }}"
 
 # Retry interval time in seconds
 interval: 60
+
+# Run the role with all allocations and verifications but do not execute the migration.
+verify_only: false
+
+dflt_max_retries: 10
+dflt_retry_wait_time: 1
+
+# Validate lpp_source and spot. Create the spot is needed. 
+validate_resources: true
