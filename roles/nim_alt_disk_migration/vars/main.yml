@@ -21,3 +21,7 @@ dflt_retry_wait_time: 1
 validate_resources: true
 validate_resources_only: false
 verify_only: false
+control_phases:
+   validate_resources: true
+   perform_migration: false
+   perform_migration_preview: false 

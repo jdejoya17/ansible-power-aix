@@ -24,16 +24,13 @@
   when: lpp_source is not defined
 - debug: msg="LPP resource {{ lpp_source }} specified for migration"
 
-
 #############################################################
 #############################################################
 
 - name: Perform resources validations 
   block:
-    #  TODO Change for verify bos.mp64 level. Save it in a file. 
     - name: "Retrieve {{ lpp_source }} AIX release level"
-      include_tasks: "idempotency_check.yml"
-    - debug: msg="TODO- Add save info into a file"
+      include_tasks: "retrieve_lpp_source_os_level.yml"
 
     #############################################################
     #############################################################
@@ -53,12 +50,17 @@
       when: spot is not defined
     - debug: msg="SPOT resource {{ spot }} specified for migration"
 
-    - name: "End the role if validate_resources_only is set "
-      meta: end_host
-      when: validate_resources_only
+    - debug: msg=" Resources {{ lpp_source and spot }} are valid and ready."
+  when: control_phases.validate_resources 
 
-  when: validate_resources or validate_resources_only
+- block:
+   - name: Exit Playbook due to control_phases.perform_migration is false 
+     debug:
+       msg: "Exit due to control_phases.perform_migration is false"      
 
+   - name: "Exit Playbook" 
+     meta: end_host
+  when: not control_phases.perform_migration
 
 #############################################################
 #############################################################
@@ -91,26 +93,21 @@
 
 #############################################################
 #############################################################
-# IDEMPOTENCY: TODO: Read the <LPP_RESOURCE_FILE> section of OS_LEVEL to verify if O.S is already at migration level.
-- name:
-  debug:
-    msg: 
-     - "TODO"
-     - "IDEMPOTYENCY TEST read lpp_source O.S level info into file /var/adm/ras/ansible_nim_{{ lpp_source }}_info.info"
-     - "retrieve client_oslevel (if not set)"
-     - "retrieve lpp_source_fileset_level, if not set"
-     - "Exit if the information is not in either source"
-     - "client_oslevel | int >= lpp_source_fileset_level | interpreter"
+# IDEMPOTENCY: Read the <LPP_RESOURCE_FILE> section of OS_LEVEL to verify if O.S is already at migration level.
 
-- name: "Read bos.mp64 version from file ~/.nim_info_file_{{ lpp_source }}"
-  include_vars:
-     file: "{{ nim_file_info }}/.nim_info_file_{{ lpp_source }}"
-     name: bosmp64_info
+  # Read the nim file created during the verification of resources.
+- name: "Read bos.mp64 version from file /var/adm/ras/ansible_nim_info_file_{{ lpp_source }}"
+  slurp: 
+     src: "/var/adm/ras/ansible_nim_info_file_{{ lpp_source }}"
+  register: output 
 
 - name: Retrieve lpp_source bos.mp64 level
   set_fact:
-    lpp_source_fileset_level: "{{ bosmp64_info.variables.split(':')[1] }}"
+    variable: "{{ output['content'] | b64decode }}"
 
+   #  bos.mp64:7100 
+-  set_fact:
+    lpp_source_fileset_level: "{{ variable.split(':')[1] }}"
 
 - name: "Determine if we need to migrate {{ nim_client }} "
   block:
@@ -199,7 +196,7 @@
 
     - name: End playbook
       meta: end_host
-  when: verify_only 
+  when: control_phases.perform_migration_preview 
 
 
 - name: "Migrate to alternate disk"  # noqa no-changed-when
@@ -216,7 +213,7 @@
 # job ID
 ############################################################
 
-- name: "Wait until alternate migration finishes (Could be more than 1 hours. Ignore FAILED RETRING messages) "
+- name: "Wait for the migration to finish... (Ignore FAILED RETRING messages) "
   async_status:
     jid: "{{ results.ansible_job_id }}"
   register: async_poll_results
