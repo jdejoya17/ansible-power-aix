@@ -1,4 +1,16 @@
 ---
 reboot_client: false
 target_disk_force: false
-nim_file_info: "/tmp"
+
+# Debug flag to exit the playbook before calling nimadm to perform the migration.
+debug_skip_nimadm: false
+
+# Control flags.
+# validate_resources: Will perform the validations of the lpp_source and spot
+#   It will also retrieve the AIX level from lpp_source.
+# perform_migration: a value of false will exit the playbook without performing the migration.
+#   This flag is used in conjuntion with validate_resources: true to use the role to
+#   only validate the resources and exit the playbook.
+control_phases:
+   validate_nim_resources: true
+   perform_migration: true

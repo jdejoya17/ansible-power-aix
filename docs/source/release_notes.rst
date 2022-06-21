@@ -5,6 +5,11 @@
 Releases
 ========
 
+Version 1.5.0
+-------------
+Notes:
+  * Beta version for evaluation purpose only.
+  * New role: nim_alt_disk_migration : Perform alternate disk nim migration using nimadm
 
 Version 1.4.1
 -------------

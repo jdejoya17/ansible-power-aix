@@ -54,6 +54,18 @@
         # then the role will derive one from lpp_source
         spot: "{{ spot_v }}"
 
+        # Control_phases options:
+        # ** validate_nim_resources false will not perform the nim resource
+        #    evaluation. Use for concurrent migration.
+        # ** validate_nim_resources true and perform_nim_migration false
+        #    will only evaluate the nim resources for the migration.
+#
+#        control_phases:
+#                 validate_nim_resources: true
+#                 perform_nim_migration: true
+
+
+
 # - name: "change bootlist"
 #   hosts: ansible-test2
 #   gather_facts: false

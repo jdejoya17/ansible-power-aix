@@ -3,21 +3,6 @@
 #############################################################
 #############################################################
 
-
-#- name: "Query bos.alt_disk_install.rte fileset {{ lpp_source }}"
-#  nim_resource:
-#    action: show
-#    name: spot_72V_2114
-#    showres:
-#      fetch_contents: true
-#  with_sequence: count=100
-#  loop_control:
-#       pause: 1
-
-
-#############################################################
-#############################################################
-
 - name: "Fail if a NIM LPP resource is not specified"
   fail:
     msg: "NIM LPP resource not specified"
@@ -51,7 +36,7 @@
     - debug: msg="SPOT resource {{ spot }} specified for migration"
 
     - debug: msg=" Resources {{ lpp_source and spot }} are valid and ready."
-  when: control_phases.validate_resources 
+  when: control_phases.validate_nim_resources
 
 - block:
    - name: Exit Playbook due to control_phases.perform_migration is false 
@@ -81,10 +66,6 @@
 #############################################################
 #############################################################
 
-- name: "Verify that the client LPAR is at least a Power8 machine"
-  include_tasks: "validate_min_power_level.yml"
-- debug: msg="{{ nim_client }} has at least a PowerPC_Power8 processor"
-
 
 - name: "Fetch client oslevel"
   include_tasks: "get_oslevel.yml"
@@ -93,19 +74,19 @@
 
 #############################################################
 #############################################################
-# IDEMPOTENCY: Read the <LPP_RESOURCE_FILE> section of OS_LEVEL to verify if O.S is already at migration level.
+# IDEMPOTENCY: Read the <LPP_RESOURCE_FILE> section of OS_LEVEL to verify if S is already at migration level.
 
   # Read the nim file created during the verification of resources.
-- name: "Read bos.mp64 version from file /var/adm/ras/ansible_nim_info_file_{{ lpp_source }}"
+- name: "Read bos.mp64 version from file {{ nim_info_file_path }}_{{ lpp_source }}"
   slurp: 
-     src: "/var/adm/ras/ansible_nim_info_file_{{ lpp_source }}"
+     src: "{{ nim_info_file_path }}_{{ lpp_source }}"
   register: output 
 
 - name: Retrieve lpp_source bos.mp64 level
   set_fact:
     variable: "{{ output['content'] | b64decode }}"
 
-   #  bos.mp64:7100 
+   #  Exampl bos.mp64:7300 
 -  set_fact:
     lpp_source_fileset_level: "{{ variable.split(':')[1] }}"
 
@@ -116,6 +97,18 @@
 
     - meta: end_play
   when: client_oslevel | int >= lpp_source_fileset_level | int 
+
+
+############################################################
+############################################################
+
+
+- block:
+    - name: "Verify that the client LPAR is at least a Power8 machine"
+      include_tasks: "validate_min_power_level.yml"
+    - debug: msg="{{ nim_client }} has at least a PowerPC_Power8 processor"
+  when: lpp_source_fileset_level | int >= 7300
+
 
 ############################################################
 ############################################################
@@ -196,7 +189,7 @@
 
     - name: End playbook
       meta: end_host
-  when: control_phases.perform_migration_preview 
+  when: debug_skip_nimadm 
 
 
 - name: "Migrate to alternate disk"  # noqa no-changed-when

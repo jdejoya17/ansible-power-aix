@@ -8,20 +8,14 @@ wait_nimadm_timeout_secs: "{{ (wait_nimadm_timeout_hours * 60 * 60) | int }}"
 # Retry times
 retry_chk_nimadm_comp: "{{ (wait_nimadm_timeout_secs | int / 60) | int + 1 }}"
 
-# Retry interval time in seconds
-interval: 60
+# Retry interval time in seconds to wait before checking the status to the NIMADM operation.
+interval: 6
 
-# Run the role with all allocations and verifications but do not execute the migration.
-verify_only: false
-
+# For nim_resource show showres operation.
+# Maximum time to retry to read a resource (lpp_source or spot) if the resource is busy.
 dflt_max_retries: 10
+# Retry interval time in seconds to wait before retrying accessing a busy lpp_resource or spot.
 dflt_retry_wait_time: 1
-
-# Validate lpp_source and spot. Create the spot is needed. 
-validate_resources: true
-validate_resources_only: false
-verify_only: false
-control_phases:
-   validate_resources: true
-   perform_migration: false
-   perform_migration_preview: false 
+# Location of the nim information file to store the lpp_source AIX level.
+# /var/adm/ras/ansible_nim_info_file_{{ lpp_source }}
+nim_info_file_path: /var/adm/ras/ansible_nim_info_file
