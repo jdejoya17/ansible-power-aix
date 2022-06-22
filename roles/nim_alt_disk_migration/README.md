@@ -1,5 +1,5 @@
-# Ansible Role: alt_disk_migration
-The [IBM Power Systems AIX](../../README.md) collection provides an [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html), referred to as `alt_disk_migration`, which automatically loads and executes commands to install dependent software.
+# Ansible Role: nim_alt_disk_migration
+The [IBM Power Systems AIX](../../README.md) collection provides an [Ansible role](https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html), referred to as `nim_alt_disk_migration`, which assists in migration of AIX 7.1/7.2 to AIX 7.3.
 
 For guides and reference, see the [Docs Site](https://ibm.github.io/ansible-power-aix/roles.html).
 
@@ -11,23 +11,30 @@ None.
 
 Available variables are listed below, along with default values:
 
-        nim_client (required)
+| Variable           | Suboptions | Required | Default | Choices | Comments |
+|--------------------|------------|----------|---------|---------|----------|
+| **nim_client**     |            | true     |         |         | Specifies a NIM object name that is associated to the NIM client LPAR to be migrated. |
+| **target_disk**    |            | true     |         |         |          |
+|                    | **disk_name**  |          |         |         | Specifies the physical volume by name where the alternate disk will be created. |
+|                    | **disk_size_policy** |    |         | minimize, upper, lower, nearest | Specifies the disk size policy to automatically determine a valid physical volume that fits the policy where the alternate disk will be created. If an alternate disk named '*altinst_rootvg*' or '*old_rootvg*' exists, the role will fail unless force option is used. |
+|                    | **force**  |          | false   |         | If physical volume specified by I(target_disk.disk_name) belongs to 'altinst_rootvg', 'old_rootvg', or a varied on volume group then that physical volume will be cleaned up. If **target_disk.disk_size_policy** is specified and an alternate disk named '*altinst_rootvg*' or '*old_rootvg*' already exists, then it will clean up the physical volume it occupies. |
+| **lpp_source**     |            | true     |         |         | Specifies a NIM object name associated to a LPP resource for the desired level of migration. |
+| **spot**           |            | false    |         |         | Specifies a NIM object name associated to a SPOT resource associated to the specified **lpp_source**. |
+| **reboot_client**  |            | false    | false   |         | Specifies if the NIM client LPAR will be automatically rebooted after successfully creating the alternate disk. |
+| **control_phase**  |            | false    |         |         |            |
+|                    | **validate_nim_resources** |  | true |    | if set to false, then it will skip validation of NIM resources |
+|                    | **perform_migration** |  | true |         | if set to false, then it will skip the actual migration task |
 
-Specifies a NIM object name that is associated to the NIM client LPAR to be migrated.
+**NOTES**:
+- ***minimize*** disk size policy chooses smallest disk that can be selected.
+- ***upper*** disk size policy chooses the first disk found bigger than the rootvg disk.
+- ***lower*** disk size policy chooses a disk that is less than rootvg disk size but big
+enough to contain the used PPs.
+- ***nearest*** disk size policy chooses a disk closest to the rootvg disk in terms of size.
+- if ***upper*** or ***lower*** cannot be satisfied, it will default to *minimize*.
+- if you are using the role to ONLY validate the NIM resources then the **nim_client**
+variable is not required.
 
-        target_disk (required)
-
-Specifies the physical volume where the alternate disk will be created in the NIM client LPAR.
-
-        lpp_source (required)
-
-Specifies a NIM object name associated to a LPP resource for the desired level of migration.
-If the object is not specified, the role will create a spot based on the I(lpp_source).
-
-        spot (optional)
-
-Specifies a NIM object name associated to a SPOT resource associated to the specified 
-I(lpp_source).
 
 ## Dependencies
 

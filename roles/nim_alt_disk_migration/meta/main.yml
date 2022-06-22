@@ -14,5 +14,7 @@ galaxy_info:
       versions:
         - all
 
-  galaxy_tags: [aix]
+  galaxy_tags:
+    - aix
+    - migration
   dependencies: []
