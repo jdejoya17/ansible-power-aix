@@ -43,10 +43,10 @@ None.
 ## Example Playbook
 
     - name: Perfrom an alternate disk migration using hdisk1. Let the role build the spot.
-      hosts: aix
+      hosts: nim
       gather_facts: no
       tasks:
-         - include_role:
+         - import_role:
               name: nim_alt_disk_migration
            vars:
               nim_client: p9zpa-ansible-test1
@@ -57,10 +57,10 @@ None.
 ## Example Playbook
 
     - name: Perform an alternate disk migration and let the role choose the disk.
-      hosts: aix
+      hosts: nim
       gather_facts: no
       tasks:
-         - include_role:
+         - import_role:
               name: nim_alt_disk_migration
            vars:
               nim_client: p9zpa-ansible-test1
@@ -75,29 +75,29 @@ None.
     # validation of the resources only once. Then you can migrate the nodes without doing verifications.
 
     - name: Validate the nim lpp and spot resources and exit the playbook.
-      hosts: aix
+      hosts: nim
       gather_facts: no
       tasks:
-         - include_role:
+         - import_role:
               name: nim_alt_disk_migration
            vars:
               lpp_source: lpp_2134A_730
               spot: spot_2134A_730
               control_phases:
                  validate_nim_resources: true
-                 perform_nim_migration: false
+                 perform_migration: false
 
 ## Example Playbook
 
     # Useful when migrating multiple nodes concurrently. The role will prevent the validation of 
-    # of the resoureces and just perform the migration. The role still will perform specific validations
+    # of the resources and just perform the migration. The role will perform specific validations
     # for the nim client such as connectity, OS level and valid hardware platform for the OS.
 
     - name: Perform an alternate disk without the lpp or spot resources validation.
-    - hosts: aix
+    - hosts: nim
       gather_facts: no
       tasks:
-         - include_role:
+         - import_role:
               name: nim_alt_disk_migration
            vars:
               nim_client: p9zpa-ansible-test1
@@ -107,19 +107,20 @@ None.
               spot: spot_2134A_730
               control_phases:
                  validate_nim_resources: false
-                 perform_nim_migration: true
+                 perform_migration: true
 
 ## Example Playbook
 
-    # For debugging purposes: debug_skip_nimadm: true
-    # Similar to modules "check_mode". Useful to execute all the validations and just exit before
-    # performing the migration. 
+    # Useful when adding the migration role into a play for the nim client.
+    # Example, the user needs to perform automated actions to the nim client "aix".
+    # Then the user wants to include a tasks to perform the nim migration.
+    # By using the delegate_to: <nim server> , the tasks will be executed in the nim server.
 
-    - name: Preview an alternate disk migration. Exit before running nimadm
+    - name: Perform a migration but using a play for the nim client not the nim server.
     - hosts: aix
       gather_facts: no
       tasks:
-         - include_role:
+         - import_role:
               name: nim_alt_disk_migration
            vars:
               nim_client: p9zpa-ansible-test1
@@ -129,7 +130,30 @@ None.
               spot: spot_2134A_730
               control_phases:
                  validate_nim_resources: true
-                 perform_nim_migration: true
+                 perform_migration: true
+           delegate_to: nim1.company.com
+
+## Example Playbook
+
+    # For debugging purposes: debug_skip_nimadm: true
+    # Similar to modules "check_mode". Useful to execute all the validations and just exit before
+    # performing the migration. 
+
+    - name: Preview an alternate disk migration. Exit before running nimadm
+    - hosts: nim
+      gather_facts: no
+      tasks:
+         - import_role:
+              name: nim_alt_disk_migration
+           vars:
+              nim_client: p9zpa-ansible-test1
+              target_disk:
+                 disk_size_policy: minimize
+              lpp_source: lpp_2134A_730
+              spot: spot_2134A_730
+              control_phases:
+                 validate_nim_resources: true
+                 perform_migration: true
               debug_skip_nimadm: true
 
 ## Copyright
