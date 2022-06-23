@@ -21,6 +21,8 @@
     lpp_source_v: lpp_72V_2114
     spot_v: spot_72V_2114
     force_target_disk: true
+    validate_nim_resources_v: true
+    perform_migration_v: true
   collections:
     - ibm.power_aix
   tasks:
@@ -55,14 +57,14 @@
         spot: "{{ spot_v }}"
 
         # Control_phases options:
-        # ** validate_nim_resources false will not perform the nim resource
+        #  * validate_nim_resources false will not perform the nim resource
         #    evaluation. Use for concurrent migration.
-        # ** validate_nim_resources true and perform_nim_migration false
+        #  * validate_nim_resources true and perform_nim_migration false
         #    will only evaluate the nim resources for the migration.
-#
-#        control_phases:
-#                 validate_nim_resources: true
-#                 perform_nim_migration: true
+
+        control_phases:
+           validate_nim_resources: "{{ validate_nim_resources_v }}"
+           perform_migration: "{{ perform_migration_v }}"
 
 
 
