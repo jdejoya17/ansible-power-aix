@@ -19,21 +19,26 @@
   tasks:
 
     # Perform a validation of resources only
-    - import_role:
-        name: ibm.power_aix.nim_alt_disk_migration
-      vars:
+    - block:
+        - import_role:
+            name: ibm.power_aix.nim_alt_disk_migration
+          vars:
 
-        nim_client: "{{ nim_client_v }}"
-        target_disk:
-          # disk_name: "{{ target_disk_v }}"
-          disk_size_policy: "{{ target_disk_policy_v }}"
-          force: "{{ force_target_disk }}"
-        lpp_source: "{{ lpp_source_v }}"
-        reboot_client: false
-        spot: "{{ spot_v }}"
-        control_phases:
-           validate_nim_resources: "{{ validate_nim_resources_v }}"
-           perform_migration: false
+            nim_client: "{{ nim_client_v }}"
+            target_disk:
+              # disk_name: "{{ target_disk_v }}"
+              disk_size_policy: "{{ target_disk_policy_v }}"
+              force: "{{ force_target_disk }}"
+            lpp_source: "{{ lpp_source_v }}"
+            reboot_client: false
+            spot: "{{ spot_v }}"
+            control_phases:
+               validate_nim_resources: "{{ validate_nim_resources_v }}"
+               perform_migration: false
+      rescue:
+        - debug:
+            msg: "Something went wrong, but continue"
+
       when: test_case_number == 1
 
     - name: Debug exit
