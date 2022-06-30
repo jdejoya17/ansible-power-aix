@@ -25,7 +25,7 @@
 - set_fact:
     nim_master_fileset_levels: >
       {{ ansible_facts['filesets']['bos.alt_disk_install.rte']['levels'].keys() | list }}
-  
+
 - name: "Check if 'bos.alt_disk_install.rte is installed in NIM master"
   fail:
     msg: "Fileset 'bos.alt_disk_install.rte' not installed in NIM master"
@@ -103,7 +103,7 @@
         msg: >
          'bos.alt_disk_install.rte' in {{ spot }} is at
          level '{{ spot_fileset_level }}'
-  when: spot is defined
+  when: spot != ""
 
 ############################################################
 ############################################################
@@ -115,15 +115,15 @@
         nim_master_fileset_level: >
           {{ nim_master_fileset_levels.0 }}
     - set_fact:
-          nim_master_fileset_level_major_num: "{{ nim_master_fileset_level.split('.')[0] }}"
-          nim_master_fileset_level_minor_num: "{{ nim_master_fileset_level.split('.')[1] }}"
+        nim_master_fileset_level_major_num: "{{ nim_master_fileset_level.split('.')[0] }}"
+        nim_master_fileset_level_minor_num: "{{ nim_master_fileset_level.split('.')[1] }}"
     - set_fact:
         nim_master_fileset_level: >
           {{ nim_master_fileset_level_major_num + nim_master_fileset_level_minor_num + '00' }}
 
     - set_fact:
-          lpp_source_fileset_level_major_num: "{{ lpp_source_fileset_level.split('.')[0] }}"
-          lpp_source_fileset_level_minor_num: "{{ lpp_source_fileset_level.split('.')[1] }}"
+        lpp_source_fileset_level_major_num: "{{ lpp_source_fileset_level.split('.')[0] }}"
+        lpp_source_fileset_level_minor_num: "{{ lpp_source_fileset_level.split('.')[1] }}"
     - set_fact:
         lpp_source_fileset_level: >
           {{ lpp_source_fileset_level_major_num + lpp_source_fileset_level_minor_num + '00' }}
@@ -145,7 +145,7 @@
             NIM master and {{ spot }} 'bos.alt_disk_install.rte'
             fileset levels do not match
       when: "spot_fileset_level not in nim_master_fileset_levels"
-  when: spot is defined
+  when: spot != ""
 
 ############################################################
 ############################################################
@@ -154,8 +154,8 @@
         and {{ spot }}"
   block:
     - set_fact:
-          spot_fileset_level_major_num: "{{ spot_fileset_level.split('.')[0] }}"
-          spot_fileset_level_minor_num: "{{ spot_fileset_level.split('.')[1] }}"
+        spot_fileset_level_major_num: "{{ spot_fileset_level.split('.')[0] }}"
+        spot_fileset_level_minor_num: "{{ spot_fileset_level.split('.')[1] }}"
     - set_fact:
         spot_fileset_level: >
           {{ spot_fileset_level_major_num + spot_fileset_level_minor_num + '00' }}
@@ -166,4 +166,4 @@
           fileset levels do not match
 
       when: spot_fileset_level != lpp_source_fileset_level
-  when: spot is defined
+  when: spot != ""

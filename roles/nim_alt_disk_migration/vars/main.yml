@@ -9,7 +9,7 @@ wait_nimadm_timeout_secs: "{{ (wait_nimadm_timeout_hours * 60 * 60) | int }}"
 retry_chk_nimadm_comp: "{{ (wait_nimadm_timeout_secs | int / 60) | int + 1 }}"
 
 # Retry interval time in seconds to wait before checking the status to the NIMADM operation.
-interval: 6
+interval: 60
 
 # For nim_resource show showres operation.
 # Maximum time to retry to read a resource (lpp_source or spot) if the resource is busy.

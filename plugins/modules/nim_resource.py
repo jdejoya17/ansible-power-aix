@@ -469,7 +469,7 @@ def res_showres(module, resource, info):
 
                 if max_retries == 0:
                     results['msg'] += fail_msg
-                    results['msg'] += "Number of attempts to fetch contents of " 
+                    results['msg'] += "Number of attempts to fetch contents of "
                     results['msg'] += "{0} has been reached.".format(resource)
                     module.fail_json(**results)
                     break
@@ -502,13 +502,13 @@ def res_showres(module, resource, info):
                 if fileset_info[1] in contents:
                     contents[fileset_info[1]][NIM_SHOWRES_FILESET_HEADERS[2]].append(
                         fileset_info[2]
-                    ) 
+                    )
                 else:
                     contents[fileset_info[1]] = dict(
                         zip(
                             NIM_SHOWRES_FILESET_HEADERS[0:2],
                             fileset_info[0:2]
-                            )
+                        )
                     )
                     contents[fileset_info[1]][NIM_SHOWRES_FILESET_HEADERS[2]] = [
                         fileset_info[2]
