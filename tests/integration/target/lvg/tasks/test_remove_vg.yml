@@ -1,0 +1,115 @@
+---
+- name: "TEST_DESCRIPTION: reduce and remove a volume group"
+  hosts: victim
+  remote_user: root
+  gather_facts: no
+  vars:
+    vg_name: testvg
+    vg_type: scalable
+    pvs: hdisk1 hdisk2 hdisk3
+    mirror_pool: mp1
+    force: True
+  collections:
+  - ibm.power_aix
+  
+  tasks:
+  #######################################
+  # Setup down Task
+  #######################################
+  - name: "SETUP: check if volume group exist"
+    lvm_facts:
+      name: all
+      component: vg
+    register: results
+
+  - name: "SETUP: create a volume group"
+    lvg:
+      state: present
+      vg_name: "{{ vg_name }}"
+      vg_type: "{{ vg_type }}"
+      pvs: "{{ pvs }}"
+      mirror_pool: "{{ mirror_pool }}"
+      force: "{{ force }}"
+    when:
+    - results.ansible_facts.LVM.VGs.{{ vg_name }} is not defined
+
+  ########################################
+  ## Actual Task To Be Tested
+  ########################################
+  - name: "TEST_RUN1: remove one PV from the volume group"
+    lvg:
+      state: absent
+      vg_name: "{{ vg_name }}"
+      pvs: hdisk1
+    register: results
+
+  - name: "TEST_RESULT: show result"
+    debug:
+      var: results
+
+  - name: "TEST_ASSERT_RUN1: expected results - first run"
+    assert:
+      that:
+      - results.msg.find( "removed from Volume group '{{ vg_name }}'" ) != -1
+      - results.cmd.find( "reducevg" ) != -1
+      - results.cmd.find( "{{ vg_name }}" ) != -1
+      - results.rc == 0
+    when:
+    - results is changed
+
+  - name: "TEST_ASSERT_RUN2: expected results - second run"
+    assert:
+      that:
+      - results.msg.find( "No changes were needed on volume group" ) != -1
+      - results.rc == 0
+    when:
+    - results is not changed
+
+  - name: "TEST_RUN2: reduce another PV from the volume group"
+    lvg:
+      state: absent
+      vg_name: "{{ vg_name }}"
+      pvs: hdisk1 hdisk2
+    register: results
+
+  - name: "TEST_RESULT: show result"
+    debug:
+      var: results
+
+  - name: "TEST_ASSERT_RUN1: expected results - first run"
+    assert:
+      that:
+      - results.msg.find( "removed from Volume group '{{ vg_name }}'" ) != -1
+      - results.cmd.find( "reducevg" ) != -1
+      - results.cmd.find( "{{ vg_name }}" ) != -1
+      - results.rc == 0
+    when:
+    - results is changed
+
+  - name: "TEST_ASSERT_RUN2: expected results - second run"
+    assert:
+      that:
+      - results.msg.find( "No changes were needed on volume group" ) != -1
+      - results.rc == 0
+    when:
+    - results is not changed
+
+  - name: "TEST_RUN3: remove the volume group"
+    lvg:
+      state: absent
+      vg_name: "{{ vg_name }}"
+    register: results
+    when: results is not changed
+
+  - name: "TEST_RESULT: show result"
+    debug:
+      var: results
+
+  - name: "TEST_ASSERT_RUN2: expected results - first run"
+    assert:
+      that:
+      - results.msg.find( "Volume group {{ vg_name }} removed" ) != 1
+      - results.cmd.find( "{{ vg_name }}" ) != -1
+      - results.rc == 0
+    when:
+    - results is not skipped
